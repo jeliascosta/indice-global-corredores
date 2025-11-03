@@ -260,6 +260,13 @@ function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
 
 // -------------------CÁLCULO DE NOTAS----------------------------
 
+function calcularNotaPorPace(pace, idade, sexo, distancia) {
+    const pacePartes = pace.split(":").map(Number);
+    const paceSegundos = pacePartes[0] * 60 + pacePartes[1];
+    const tempo = segundosParaTempo(paceSegundos * distancia);
+    return calcularNota(tempo, idade, sexo, distancia);
+}
+
 // function calcularNota(tempo, idade, sexo, distanciaKm) {
 //     const tempoSeg = tempoParaSegundos(tempo);
 //     const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
@@ -268,56 +275,6 @@ function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
 //     let nota = 100 - (tempoSeg - tempoRefSeg) / (tempo0Seg - tempoRefSeg) * 100;
 //     return Math.max(0, Math.floor(nota));
 // }
-
-function calcularNota(tempo, idade, sexo, distanciaKm) {
-    const tempoSeg = tempoParaSegundos(tempo);
-    const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
-    const tempo0Seg = tempoRefSeg * 2; // tempo que daria nota 0 na linear
-
-    // normaliza tempo em 0..1 (0 = tempoRef, 1 = tempo0)
-    let x = (tempoSeg - tempoRefSeg) / (tempo0Seg - tempoRefSeg);
-
-    // nota linear para referência
-    const notaLinear = 100 - x * 100;
-
-    // PONTOS DE TRANSIÇÃO
-    const nota50 = 50;
-    const nota80 = 90;
-
-    // determina x correspondente para nota50 e nota80 na linear
-    const x50 = (100 - nota50) / 100; // 0.5
-    const x80 = (100 - nota80) / 100; // 0.2
-
-    let nota;
-
-    if (x >= x50) {
-        // nota < 50 → linear
-        nota = notaLinear;
-    } else if (x >= x80) {
-        // região 50–80 → crescimento rápido
-        const t = (x50 - x) / (x50 - x80); // 0..1
-        nota = 50 + (90 - 50) * Math.pow(t, 0.5); // raiz quadrada
-    } else if (x >= 0) {
-        // região 80–100 → crescimento lento
-        const t = (x80 - x) / x80; // 0..1
-        nota = 90 + (100 - 90) * Math.pow(t, 2); // quadrado
-    } else {
-        // tempo melhor que tempoRef → extrapolação acima de 100
-        // mantém o mesmo padrão lento: pequenas melhorias → pequenas notas extras
-        const t = -x / x80; // 0..1+
-        nota = 100 + (100 - 90) * Math.pow(t, 2); // mesma curva que 90-100, continua subindo
-    }
-
-    return Math.max(0, Math.floor(nota));
-}
-
-
-function calcularNotaPorPace(pace, idade, sexo, distancia) {
-    const pacePartes = pace.split(":").map(Number);
-    const paceSegundos = pacePartes[0] * 60 + pacePartes[1];
-    const tempo = segundosParaTempo(paceSegundos * distancia);
-    return calcularNota(tempo, idade, sexo, distancia);
-}
 
 // function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
 //     const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
@@ -337,36 +294,148 @@ function calcularNotaPorPace(pace, idade, sexo, distancia) {
 //     };
 // }
 
+// function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
+//     const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
+//     const tempo0Seg = tempoRefSeg * 2;
+
+//     // PONTOS DE TRANSIÇÃO
+//     const nota50 = 50;
+//     const nota80 = 90;
+//     const x50 = (100 - nota50) / 100; // 0.5
+//     const x80 = (100 - nota80) / 100; // 0.2
+
+//     let x; // valor normalizado tempo → 0..1, inverso do calcularNotaCurva
+
+//     if (nota <= 50) {
+//         // linear abaixo de 50
+//         x = (100 - nota) / 100;
+//     } else if (nota <= 90) {
+//         // região 50-90 (crescimento rápido)
+//         const t = (nota - 50) / (90 - 50);
+//         x = x50 - Math.pow(t, 2) * (x50 - x80); // raiz quadrada invertida
+//     } else if (nota <= 100) {
+//         // região 90-100 (crescimento lento)
+//         const t = (nota - 90) / (100 - 90);
+//         x = x80 - Math.pow(t, 1/2) * x80; // curva lenta invertida
+//     } else {
+//         // extrapolação acima de 100
+//         const t = (nota - 100) / (100 - 90); // continua a curva lenta
+//         x = -Math.sqrt(t) * x80; // x < 0 → tempo melhor que referência
+//     }
+
+//     const tempoSeg = tempoRefSeg + x * (tempo0Seg - tempoRefSeg);
+
+//     const paceMin = tempoSeg / 60 / distanciaKm;
+//     const paceMinInt = Math.floor(paceMin);
+//     const paceSeg = Math.round((paceMin - paceMinInt) * 60);
+
+//     const fatorIdade = interpolarFatorIdadePorDistancia(idade, sexo);
+
+//     return {
+//         tempo: segundosParaTempo(tempoSeg),
+//         fatorIdade: fatorIdade.toFixed(3),
+//         pace: `${paceMinInt}:${String(paceSeg).padStart(2,'0')}`,
+//     };
+// }
+
+// function calcularNota(tempo, idade, sexo, distanciaKm) {
+//     const tempoSeg = tempoParaSegundos(tempo);
+//     const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
+//     const tempo0Seg = tempoRefSeg * 2; // tempo que daria nota 0 na linear
+
+//     // normaliza tempo em 0..1 (0 = tempoRef, 1 = tempo0)
+//     let x = (tempoSeg - tempoRefSeg) / (tempo0Seg - tempoRefSeg);
+
+//     // nota linear para referência
+//     const notaLinear = 100 - x * 100;
+
+//     // PONTOS DE TRANSIÇÃO
+//     const nota50 = 50;
+//     const nota80 = 90;
+
+//     // determina x correspondente para nota50 e nota80 na linear
+//     const x50 = (100 - nota50) / 100; // 0.5
+//     const x80 = (100 - nota80) / 100; // 0.2
+
+//     let nota;
+
+//     if (x >= x50) {
+//         // nota < 50 → linear
+//         nota = notaLinear;
+//     } else if (x >= x80) {
+//         // região 50–80 → crescimento rápido
+//         const t = (x50 - x) / (x50 - x80); // 0..1
+//         nota = 50 + (90 - 50) * Math.pow(t, 0.5); // raiz quadrada
+//     } else if (x >= 0) {
+//         // região 80–100 → crescimento lento
+//         const t = (x80 - x) / x80; // 0..1
+//         nota = 90 + (100 - 90) * Math.pow(t, 3); // quadrado
+//     } else {
+//         // tempo melhor que tempoRef → extrapolação acima de 100
+//         // mantém o mesmo padrão lento: pequenas melhorias → pequenas notas extras
+//         const t = -x / x80; // 0..1+
+//         nota = 100 + (100 - 90) * Math.pow(t, 2); // mesma curva que 90-100, continua subindo
+//     }
+
+//     return Math.max(0, Math.floor(nota));
+// }
+
+// --- Pontos configuráveis da curva de nota ---
+// cada ponto é [nota, proporção do tempoRef → tempo0]
+const pontosCurva = [
+    { nota: 100, proporcao: 1.00 }, // tempoRef (nota máxima)
+    { nota: 90,  proporcao: 1.20 }, // queda suave até aqui
+    // { nota: 80,  proporcao: 1.20 }, // queda rápida
+    { nota: 50,  proporcao: 1.40 }, // tempo dobra ~aqui
+    { nota: 0,   proporcao: 2.00 }  // tempo0Seg
+];
+
+// --- Interpola suavemente entre pontos da curva ---
+function proporcaoPorNota(nota) {
+    if (nota >= pontosCurva[0].nota) return pontosCurva[0].proporcao;
+    if (nota <= pontosCurva[pontosCurva.length - 1].nota) return pontosCurva[pontosCurva.length - 1].proporcao;
+
+    for (let i = 1; i < pontosCurva.length; i++) {
+        const p0 = pontosCurva[i - 1];
+        const p1 = pontosCurva[i];
+        if (nota >= p1.nota && nota <= p0.nota) {
+            const t = (nota - p1.nota) / (p0.nota - p1.nota);
+            // suavização cúbica (ease-in-out)
+            const s = t * t * (3 - 2 * t);
+            return p1.proporcao + (p0.proporcao - p1.proporcao) * s;
+        }
+    }
+}
+
+// --- Cálculo genérico da nota com curva calibrável ---
+function calcularNota(tempo, idade, sexo, distanciaKm) {
+    const tempoSeg = tempoParaSegundos(tempo);
+    const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
+    const tempo0Seg = tempoRefSeg * pontosCurva[pontosCurva.length - 1].proporcao;
+
+    // razão em relação ao tempo de referência
+    const razao = tempoSeg / tempoRefSeg;
+
+    // achar nota correspondente à razão (inversão da curva)
+    let nota = 0;
+    for (let i = 1; i < pontosCurva.length; i++) {
+        const p0 = pontosCurva[i - 1];
+        const p1 = pontosCurva[i];
+        if (razao <= p0.proporcao && razao >= p1.proporcao) {
+            const t = (razao - p1.proporcao) / (p0.proporcao - p1.proporcao);
+            const s = t * t * (3 - 2 * t); // suavização cúbica inversa
+            nota = p1.nota + (p0.nota - p1.nota) * s;
+            break;
+        }
+    }
+    return Math.max(0, Math.round(nota));
+}
+
+// --- Função inversa: dado nota → tempo e pace ---
 function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
     const tempoRefSeg = tempoRefPorDistanciaExp(distanciaKm, idade, sexo);
-    const tempo0Seg = tempoRefSeg * 2;
-
-    // PONTOS DE TRANSIÇÃO
-    const nota50 = 50;
-    const nota80 = 90;
-    const x50 = (100 - nota50) / 100; // 0.5
-    const x80 = (100 - nota80) / 100; // 0.2
-
-    let x; // valor normalizado tempo → 0..1, inverso do calcularNotaCurva
-
-    if (nota <= 50) {
-        // linear abaixo de 50
-        x = (100 - nota) / 100;
-    } else if (nota <= 90) {
-        // região 50-90 (crescimento rápido)
-        const t = (nota - 50) / (90 - 50);
-        x = x50 - Math.pow(t, 2) * (x50 - x80); // raiz quadrada invertida
-    } else if (nota <= 100) {
-        // região 90-100 (crescimento lento)
-        const t = (nota - 90) / (100 - 90);
-        x = x80 - Math.sqrt(t) * x80; // curva lenta invertida
-    } else {
-        // extrapolação acima de 100
-        const t = (nota - 100) / (100 - 90); // continua a curva lenta
-        x = -Math.sqrt(t) * x80; // x < 0 → tempo melhor que referência
-    }
-
-    const tempoSeg = tempoRefSeg + x * (tempo0Seg - tempoRefSeg);
+    const proporcao = proporcaoPorNota(nota);
+    const tempoSeg = tempoRefSeg * proporcao;
 
     const paceMin = tempoSeg / 60 / distanciaKm;
     const paceMinInt = Math.floor(paceMin);
@@ -377,7 +446,7 @@ function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
     return {
         tempo: segundosParaTempo(tempoSeg),
         fatorIdade: fatorIdade.toFixed(3),
-        pace: `${paceMinInt}:${String(paceSeg).padStart(2,'0')}`,
+        pace: `${paceMinInt}:${String(paceSeg).padStart(2, '0')}`,
     };
 }
 

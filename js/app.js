@@ -1,40 +1,7 @@
 // app.js
 
-// Função para calcular a nota ou o tempo com base na entrada do usuário
-function calcular() {
-    const tempoInput = document.getElementById("tempo").value;
-    const idadeInput = parseInt(document.getElementById("idade").value);
-    const sexoInput = document.querySelector('input[name="sexo"]:checked').value;
-    const distanciaInput = parseFloat(document.getElementById("distancia").value);
-
-    // Verifica se os campos estão preenchidos corretamente
-    if (!tempoInput || isNaN(idadeInput) || !sexoInput || isNaN(distanciaInput)) {
-        alert("Por favor, preencha todos os campos corretamente.");
-        return;
-    }
-
-    // Chama a função calcularNota do global_cefan.js
-    const nota = calcularNota(tempoInput, idadeInput, sexoInput, distanciaInput);
-    document.getElementById("resultado").innerText = `Nota: ${nota}`;
-}
-
-// Função para calcular o tempo correspondente a uma nota
-function calcularTempo() {
-    const notaInput = parseInt(document.getElementById("nota").value);
-    const idadeInput = parseInt(document.getElementById("idadeTempo").value);
-    const sexoInput = document.querySelector('input[name="sexoTempo"]:checked').value;
-    const distanciaInput = parseFloat(document.getElementById("distanciaTempo").value);
-
-    // Verifica se os campos estão preenchidos corretamente
-    if (isNaN(notaInput) || isNaN(idadeInput) || !sexoInput || isNaN(distanciaInput)) {
-        alert("Por favor, preencha todos os campos corretamente.");
-        return;
-    }
-
-    // Chama a função tempoParaNota do global_cefan.js
-    const resultado = tempoEPaceParaNota(notaInput, idadeInput, sexoInput, distanciaInput);
-    document.getElementById("resultadoTempo").innerText = `Tempo: ${resultado.tempo} (Pace: ${resultado.pace})`;
-}
+const tituloGraficos = document.getElementById('titulo-graficos');
+const inputIdade = document.getElementById('idade');
 
 // Preenche tabela de referência para um sexo específico em um tbody dado
 function preencherTabelaParaSexo(tbodyId, sexoReferencia) {
@@ -117,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pace = document.getElementById('pace').value;
                 nota = calcularNotaPorPace(pace, idade, sexo, distancia);
             }
-            
+            console.log('Nota calculada:', nota);
             document.getElementById('nota').textContent = 
                 `Nota: ${nota.toFixed(2)} pontos`;
         } catch (error) {
@@ -287,9 +254,75 @@ function gerarGraficos() {
     }
 }
 
+// Adicione esta função para atualizar o título
+function atualizarTituloGraficos() {
+    const idade = inputIdade.value;
+    tituloGraficos.textContent = `Gráficos: Nota vs Tempo (${idade} anos)`;
+}
+
 // Chamar gerarGraficos() após carregar página e quando idade mudar
 document.addEventListener('DOMContentLoaded', function() {
     try { gerarGraficos(); } catch (e) {}
     const idadeInput = document.getElementById('idade');
     if (idadeInput) idadeInput.addEventListener('change', () => { try { gerarGraficos(); } catch(e){} });
 });
+
+// Adicione estes event listeners
+inputIdade.addEventListener('change', atualizarTituloGraficos);
+inputIdade.addEventListener('input', atualizarTituloGraficos);
+
+// Chamar a função uma vez para definir o título inicial
+atualizarTituloGraficos();
+
+function atualizarTabelaNotas() {
+    const idade = parseInt(document.getElementById('idade').value);
+    const sexo = document.getElementById('sexo').value;
+    const distancia = parseFloat(document.getElementById('distancia').value);
+    const tabelaNotas = document.getElementById('tabelaNotas');
+    const idadeRef = document.getElementById('idade-ref');
+    
+    // Atualiza a idade no título
+    idadeRef.textContent = idade;
+    
+    // Limpa a tabela
+    tabelaNotas.innerHTML = '';
+    
+    // Gera linhas para notas de 100 a 50
+    for (let nota = 100; nota >= 50; nota -= 1) {
+        const resultado = tempoEPaceParaNota(nota, idade, sexo, distancia);
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${nota}</td>
+            <td>${resultado.tempo}</td>
+            <td>${resultado.pace}</td>
+        `;
+        tabelaNotas.appendChild(tr);
+    }
+}
+
+// Adicionar event listeners para atualizar a tabela
+document.getElementById('idade').addEventListener('change', atualizarTabelaNotas);
+document.getElementById('sexo').addEventListener('change', atualizarTabelaNotas);
+document.getElementById('distancia').addEventListener('change', atualizarTabelaNotas);
+
+// Inicializar a tabela
+document.addEventListener('DOMContentLoaded', atualizarTabelaNotas);
+
+function atualizarTituloReferencia() {
+    const idade = document.getElementById('idade').value;
+    const sexo = document.getElementById('sexo').value;
+    const distancia = document.getElementById('distancia').value;
+    
+    document.getElementById('idade-ref').textContent = idade;
+    document.getElementById('distancia-ref').textContent = distancia;
+    document.getElementById('sexo-ref').textContent = sexo === 'M' ? 'Masc.' : 'Fem.';
+}
+
+// Adicionar event listeners
+document.getElementById('idade').addEventListener('change', atualizarTituloReferencia);
+document.getElementById('sexo').addEventListener('change', atualizarTituloReferencia);
+document.getElementById('distancia').addEventListener('change', atualizarTituloReferencia);
+
+// Inicializar o título
+document.addEventListener('DOMContentLoaded', atualizarTituloReferencia);

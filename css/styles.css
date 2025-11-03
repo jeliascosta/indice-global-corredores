@@ -141,3 +141,28 @@ tr:hover {
     height: 100%;
     display: block;
 }
+
+/* .tabela-notas {
+    margin: 2rem 0;
+}
+
+.tabela-notas table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+*/
+.tabela-notas th,
+.tabela-notas td {
+    padding: 0.5rem;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+/* 
+.tabela-notas th {
+    background-color: #f5f5f5;
+}
+
+.tabela-notas tr:nth-child(even) {
+    background-color: #f9f9f9;
+}  */

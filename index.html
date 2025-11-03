@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora</title>
+    <title>IGDCC</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <div class="container">
-        <h1>Calculadora</h1>
+        <h1>IGDCC</h1>
         <form id="calcForm">
             <div class="input-group">
-                <label>Tipo de entrada:</label>
+                <!-- <label>Tipo de entrada:</label> -->
                 <div class="radio-group">
                     <input type="radio" id="tipoTempo" name="tipoEntrada" value="tempo" checked>
                     <label for="tipoTempo">Tempo total</label>
@@ -26,7 +28,7 @@
             </div>
 
             <div id="paceInput" style="display: none;">
-                <label for="pace">Pace (mm:ss por km):</label>
+                <label for="pace">Pace (mm:ss):</label>
                 <input type="text" id="pace" value="03:27">
             </div>
 
@@ -49,6 +51,59 @@
             <h2>Resultado:</h2>
             <p id="nota"></p>
         </div>
+
+        <!-- Nova tabela de referência por nota -->
+        <div class="tabela-notas">
+            <h2>Tabela de Referência (<span id="distancia-ref">2.4</span>km <span id="sexo-ref">Masc.</span> <span id="idade-ref">30</span> anos)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nota</th>
+                            <th>Tempo</th>
+                            <th>Pace</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaNotas">
+                        <!-- preenchido via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nova seção de gráficos -->
+        <div class="seccion-graficos">
+            <h2 id="titulo-graficos">Gráficos: Nota vs Tempo</h2>
+            <!-- <p class="muted">Linhas para Homens (M) e Mulheres (F).</p> -->
+
+            <div class="grid-graficos">
+                <div class="grafico-wrap">
+                    <h4>2.4 km</h4>
+                    <canvas id="chart-2-4" width="400" height="250"></canvas>
+                </div>
+
+                <div class="grafico-wrap">
+                    <h4>5 km</h4>
+                    <canvas id="chart-5" width="400" height="250"></canvas>
+                </div>
+
+                <div class="grafico-wrap">
+                    <h4>10 km</h4>
+                    <canvas id="chart-10" width="400" height="250"></canvas>
+                </div>
+
+                <div class="grafico-wrap">
+                    <h4>15 km</h4>
+                    <canvas id="chart-15" width="400" height="250"></canvas>
+                </div>
+
+                <div class="grafico-wrap" style="margin-top: 40px; padding-bottom: 50px;">
+                    <h4>Meia Maratona</h4>
+                    <canvas id="chart-meia" width="400" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- /Nova seção de gráficos -->
 
         <div class="tabela-referencia">
             <h2>Tempos de Referência para Nota 100</h2>
@@ -93,39 +148,7 @@
             </div>
         </div>
 
-        <!-- Nova seção de gráficos -->
-        <div class="seccion-graficos">
-            <h2>Gráficos: Nota vs Tempo (tempo em mm:ss)</h2>
-            <p class="muted">Linhas para Homens (M) e Mulheres (F). Intervalo de notas: 0 → 100.</p>
 
-            <div class="grid-graficos">
-                <div class="grafico-wrap">
-                    <h4>2.4 km</h4>
-                    <canvas id="chart-2-4" width="400" height="250"></canvas>
-                </div>
-
-                <div class="grafico-wrap">
-                    <h4>5 km</h4>
-                    <canvas id="chart-5" width="400" height="250"></canvas>
-                </div>
-
-                <div class="grafico-wrap">
-                    <h4>10 km</h4>
-                    <canvas id="chart-10" width="400" height="250"></canvas>
-                </div>
-
-                <div class="grafico-wrap">
-                    <h4>15 km</h4>
-                    <canvas id="chart-15" width="400" height="250"></canvas>
-                </div>
-
-                <div class="grafico-wrap" style="margin-top: 40px; padding-bottom: 50px;">
-                    <h4>Meia Maratona</h4>
-                    <canvas id="chart-meia" width="400" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-        <!-- /Nova seção de gráficos -->
 
     </div>
 
@@ -134,4 +157,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/app.js"></script>
 </body>
+
 </html>
