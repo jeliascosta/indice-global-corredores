@@ -6,7 +6,7 @@ Este projeto é uma calculadora que utiliza funções para calcular notas e temp
 
 - **index.html**: Documento HTML principal que estrutura a página da web.
 - **css/styles.css**: Arquivo de estilos que define a aparência visual da página.
-- **js/global_cefan.js**: Contém as funções JavaScript para calcular notas e tempos.
+- **js/calc.js**: Contém as funções JavaScript para calcular notas e tempos.
 - **js/app.js**: Script principal que interage com os elementos HTML e manipula a lógica da aplicação.
 
 ## Como Usar
