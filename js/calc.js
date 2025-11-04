@@ -2,10 +2,11 @@
 
 // --- Tabela de referência (nota 100) ---
 const temposRefOrig = {
-    "2.4km": { idade: 40, tempo: "08:15", sexo: 'M' },
+    "2.4km": { idade: 40, tempo: "08:10", sexo: 'M' },
     "10km": { idade: 38, tempo: "40:00", sexo: 'M' },
     "meia": { idade: 40, tempo: "120:00", sexo: 'F' }
 };
+window.temposRefOrig = temposRefOrig; // Expor para index.html
 
 // --- Mapear distâncias base para km ---
 const distanciasBase = {
@@ -13,6 +14,7 @@ const distanciasBase = {
     "10km": 10,
     "meia": 21.0975
 };
+window.distanciasBase = distanciasBase; // Expor para index.html
 
 // -------------------FATORES DE IDADE----------------------------
 
@@ -234,9 +236,9 @@ function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
     const baseMenor = temposRefBase[menor.nome][sexoUp];
     const baseMaior = temposRefBase[maior.nome][sexoUp];
     const tMenor = baseMenor.tSeg *
-                   (fator / interpolarFatorIdadePorDistancia(baseMenor.idadeOrig, sexoUp));
+        (fator / interpolarFatorIdadePorDistancia(baseMenor.idadeOrig, sexoUp));
     const tMaior = baseMaior.tSeg *
-                   (fator / interpolarFatorIdadePorDistancia(baseMaior.idadeOrig, sexoUp));
+        (fator / interpolarFatorIdadePorDistancia(baseMaior.idadeOrig, sexoUp));
 
     // --- Riegel ajustado (expoente mais conservador para amadores) ---
     const expoRiegel = 1.07; // típico de corredores recreativos
@@ -269,29 +271,95 @@ function calcularNotaPorPace(pace, idade, sexo, distancia) {
 
 // --- Pontos configuráveis da curva de nota ---
 // cada ponto é [nota, proporção do tempoRef → tempo0]
-const pontosCurva = [
-    { nota: 100, proporcao: 1.00 }, // tempoRef (nota máxima)
-    { nota: 90,  proporcao: 1.20 }, // queda 
-    { nota: 50,  proporcao: 1.40 }, // tempo dobra ~aqui
-    { nota: 0,   proporcao: 2.00 }  // tempo0Seg
-];
+// const pontosCurva = [
+//     { nota: 100, proporcao: 1.00 }, // tempoRef (nota máxima)
+//     { nota: 90, proporcao: 1.50 }, // 
+//     { nota: 50, proporcao: 1.60 }, //
+//     { nota: 0, proporcao: 2.00 }  // tempo0Seg
+// ];
 
-// --- Interpola suavemente entre pontos da curva ---
+// function proporcaoPorNota(nota) {
+//     // parâmetros base
+//     const proporcao100 = 1.0;
+//     const proporcaoY2 = 1.2; // ponto fixo intermediário (mantém linear)
+//     const proporcaoY1 = 1.5;
+//     const proporcao0  = 4.0;  // extrapolação simétrica
+//     const notaY1 = 50;
+//     const notaY2 = 89;
+//     const nota100 = 100;
+
+//     // expoentes de curvatura
+//     const expoenteSobre = 2.0; // sobrelinear entre 50–90
+//     const expoenteSub = 0.6;   // sublinear entre 90–100
+
+//     if (nota >= nota100) {
+//         // extrapolação acima de 100 → cada ponto extra reduz ~1% do tempo
+//         const fatorExtra = 0.01;
+//         return proporcao100 * (1 - (nota - 100) * fatorExtra);
+//     }
+
+//     if (nota <= 0) {
+//         // extrapolação abaixo de 0 → simétrica (4x em 0)
+//         const t = (0 - nota) / 50; // 0→50
+//         return proporcaoY1 + (proporcao0 - proporcaoY1) * Math.pow(t, 1 / expoenteSub);
+//     }
+
+//     if (nota >= notaY2 && nota <= nota100) {
+//         // 90–100: sublinear (curva suaviza até 100)
+//         const t = (nota - notaY2) / (nota100 - notaY2);
+//         return proporcaoY2 + (proporcao100 - proporcaoY2) * Math.pow(t, expoenteSub);
+//     }
+
+//     if (nota >= notaY1 && nota < notaY2) {
+//         // 50–90: sobrelinear (crescimento mais lento no início, acelera no fim)
+//         const t = (nota - notaY1) / (notaY2 - notaY1);
+//         return proporcaoY1 + (proporcaoY2 - proporcaoY1) * Math.pow(t, expoenteSobre);
+//     }
+
+//     // abaixo de 50: simétrico ao sobrelinear
+//     if (nota < notaY1) {
+//         const t = (notaY1 - nota) / notaY1;
+//         return proporcaoY1 + (proporcao0 - proporcaoY1) * Math.pow(t, 1 / expoenteSobre);
+//     }
+// }
+
 function proporcaoPorNota(nota) {
-    if (nota >= pontosCurva[0].nota) return pontosCurva[0].proporcao;
-    if (nota <= pontosCurva[pontosCurva.length - 1].nota) return pontosCurva[pontosCurva.length - 1].proporcao;
+    const proporcao100 = 1.0;
+    const proporcao50 = 2;
+    const nota50 = 50;
+    const nota90 = 90;
+    const nota100 = 100;
 
-    for (let i = 1; i < pontosCurva.length; i++) {
-        const p0 = pontosCurva[i - 1];
-        const p1 = pontosCurva[i];
-        if (nota >= p1.nota && nota <= p0.nota) {
-            const t = (nota - p1.nota) / (p0.nota - p1.nota);
-            // suavização cúbica (ease-in-out)
-            const s = t * t * (3 - 2 * t);
-            return p1.proporcao + (p0.proporcao - p1.proporcao) * s;
-        }
+    if (nota >= nota100) {
+        // acima de 100 → ~1% mais rápido por ponto
+        const fatorExtra = 0.01;
+        return proporcao100 * (1 - (nota - 100) * fatorExtra);
     }
+
+    if (nota <= 0) {
+        // abaixo de 0 → dobra novamente o tempo (simétrico)
+        const proporcao0 = proporcao50 * 2.0; // = 4
+        const t = (0 - nota) / 50;
+        return proporcao50 + (proporcao0 - proporcao50) * Math.pow(t, 0.6);
+    }
+
+    // --- Região 50–100 ---
+    let expoente;
+    if (nota <= nota90) {
+        // transição suave de 50→90: 1.6 → 1.0
+        const t = (nota - nota50) / (nota90 - nota50);
+        expoente = 1.6 - 0.5 * t; // decresce linearmente
+    } else {
+        // transição suave de 90→100: 1.0 → 0.6
+        const t = (nota - nota90) / (nota100 - nota90);
+        expoente = 1.0 - 0.4 * t;
+    }
+
+    // cálculo da proporção
+    const t = (nota - nota50) / (nota100 - nota50);
+    return proporcao50 + (proporcao100 - proporcao50) * Math.pow(t, expoente);
 }
+
 
 
 function calcularNota(tempo, idade, sexo, distanciaKm) {
@@ -324,20 +392,22 @@ function calcularNota(tempo, idade, sexo, distanciaKm) {
         }
     }
 
-    // correção final: se o tempo for menor ou igual ao tempoRef (nota 100), força 100
-    const tempoRef = tempoEPaceParaNota(100, idade, sexo, distanciaKm).tempo;
-    if (tempoParaSegundos(tempo) <= tempoParaSegundos(tempoRef)) return 100.0;
+    // se o tempo for melhor que o tempoRef, extrapola nota acima de 100
+    const tempoRefSeg = tempoParaSegundos(tempoEPaceParaNota(100, idade, sexo, distanciaKm).tempo);
+    if (tempoSeg <= tempoRefSeg) {
+        // diferença percentual
+        const ganho = (tempoRefSeg - tempoSeg) / tempoRefSeg;
+        // cada 1% mais rápido = +5 pontos (ajustável)
+        const bonus = ganho * 500;
+        return Math.min(200, 100 + bonus); // teto 200 por segurança
+    }
 
     // idem para o limite inferior
     const tempoZero = tempoEPaceParaNota(0, idade, sexo, distanciaKm).tempo;
     if (tempoParaSegundos(tempo) >= tempoParaSegundos(tempoZero)) return 0.0;
 
-    console.log("Nota float", nota);
     return Math.floor(nota);
 }
-
-
-
 
 // --- Função inversa: dado nota → tempo e pace ---
 function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
@@ -350,7 +420,7 @@ function tempoEPaceParaNota(nota, idade, sexo, distanciaKm) {
     const paceSeg = Math.floor((paceMin - paceMinInt) * 60);
 
     const fatorIdade = interpolarFatorIdadePorDistancia(idade, sexo);
-    console.log("Nota", nota, "Tempo Float", tempoSeg)
+    // console.log("Nota", nota, "Tempo Float", tempoSeg)
     return {
         segundos: tempoSeg,
         tempo: segundosParaTempo(tempoSeg),

@@ -166,3 +166,51 @@ tr:hover {
 .tabela-notas tr:nth-child(even) {
     background-color: #f9f9f9;
 }  */
+
+/* estilo para o pequeno ícone/label AI como subscrito */
+.adicione {
+    font-size: 0.5em;       /* fonte pequena */
+    vertical-align: middle;    /* subscrito */
+    margin-left: 6px;
+    color: #666;            /* cor suave, ajuste se quiser */
+    font-weight: 600;
+    display: inline-block;
+    line-height: 1;
+}
+
+/* Card big-number para a nota */
+#nota {
+    margin: 30px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nota-card {
+    display: inline-block;
+    min-width: 120px;
+    padding: 18px 28px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 3.5rem;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    user-select: none;
+}
+
+/* fundo azul para masculino */
+.nota-card.masc {
+    background: linear-gradient(180deg, #4da3ff 0%, #0066d6 100%);
+}
+
+/* fundo rosa para feminino */
+.nota-card.fem {
+    background: linear-gradient(180deg, #ff9fc4 0%, #ff4f86 100%);
+}
+
+/* opção: cor neutra se inválido/desconhecido */
+.nota-card.unknown {
+    background: linear-gradient(180deg, #999 0%, #666 100%);
+}

@@ -10,7 +10,7 @@
 
 <body>
     <div class="container">
-        <h1>IGDCC</h1>
+        <h1>IGDCC <sub class="adicione" title="adicione">REV1</sub></h1>
         <form id="calcForm">
             <div class="input-group">
                 <!-- <label>Tipo de entrada:</label> -->
@@ -48,13 +48,22 @@
         </form>
 
         <div id="resultado">
-            <h2>Resultado:</h2>
-            <p id="nota"></p>
+            <div id="nota"></div>
+        </div>
+
+        <hr style="margin-top: 20px;"/>
+        <!-- Seção: temposRefOrig (inserida) -->
+        <div id="tempos-ref-orig"  class="tempos-ref-orig tabela-referencia">
+            <h2>Metas Top</h2>
+            <div id="temposRefOrigContent">
+                <!-- calc.js deve preencher este elemento com o conteúdo de temposRefOrig -->
+            </div>
         </div>
 
         <!-- Nova tabela de referência por nota -->
         <div class="tabela-notas">
-            <h2>Tabela de Referência (<span id="distancia-ref">2.4</span>km <span id="sexo-ref">Masc.</span> <span id="idade-ref">30</span> anos)</h2>
+            <h2>Notas (<span id="distancia-ref">2.4</span>km <span id="sexo-ref">Masc.</span> <span
+                    id="idade-ref">30</span> anos)</h2>
             <div class="table-responsive">
                 <table>
                     <thead>

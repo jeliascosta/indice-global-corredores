@@ -44,14 +44,14 @@ function preencherTabelaReferencia() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Controle de exibição dos campos de entrada
     const radioButtons = document.querySelectorAll('input[name="tipoEntrada"]');
     const tempoInput = document.getElementById('tempoInput');
     const paceInput = document.getElementById('paceInput');
 
     radioButtons.forEach(radio => {
-        radio.addEventListener('change', function() {
+        radio.addEventListener('change', function () {
             if (this.value === 'tempo') {
                 tempoInput.style.display = 'block';
                 paceInput.style.display = 'none';
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Manipulação do formulário
-    document.getElementById('calcForm').addEventListener('submit', function(e) {
+    document.getElementById('calcForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
         const tipoEntrada = document.querySelector('input[name="tipoEntrada"]:checked').value;
@@ -84,10 +84,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const pace = document.getElementById('pace').value;
                 nota = calcularNotaPorPace(pace, idade, sexo, distancia);
             }
-            document.getElementById('nota').textContent = 
-                `Nota: ${nota.toFixed(2)} pontos`;
+            // Renderiza a nota como "big number" (apenas parte inteira).
+            // Fundo azul para masculino (M), rosa para feminino (F).
+            const inteiro = Math.floor(Number(nota) || 0);
+            const classeSexo = (sexo === 'F') ? 'fem' : (sexo === 'M' ? 'masc' : 'unknown');
+            document.getElementById('nota').innerHTML = `<div class="nota-card ${classeSexo}">${inteiro}</div>`;
         } catch (error) {
-            document.getElementById('nota').textContent = 
+            document.getElementById('nota').textContent =
                 `Erro: ${error.message}`;
         }
     });
@@ -100,8 +103,8 @@ function tempoStringParaSegundos(t) {
     if (t == null) return NaN;
     if (typeof t === 'number') return t; // já em segundos
     const p = String(t).split(':').map(Number);
-    if (p.length === 3) return p[0]*3600 + p[1]*60 + p[2];
-    if (p.length === 2) return p[0]*60 + p[1];
+    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    if (p.length === 2) return p[0] * 60 + p[1];
     return NaN;
 }
 
@@ -113,11 +116,11 @@ function segundosParaMMSS(sec) {
         const h = Math.floor(total / 3600);
         const m = Math.floor((total % 3600) / 60);
         const s = total % 60;
-        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     } else {
         const m = Math.floor(total / 60);
         const s = total % 60;
-        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 }
 
@@ -149,15 +152,15 @@ function gerarGraficos() {
 
     // Intervalo de notas: 50 → 100 (a cada 5)
     const notas = [];
-    for (let n = 50; n <= 100; n += 5) notas.push(n);
+    for (let n = 50; n <= 100; n += n>=90?1:5) notas.push(n);
 
     const idade = parseInt(document.getElementById('idade')?.value) || 30;
     const distancias = [
         { id: 'chart-2-4', km: 2.4, label: '2.4 km' },
-        { id: 'chart-5',   km: 5,   label: '5 km' },
-        { id: 'chart-10',  km: 10,  label: '10 km' },
-        { id: 'chart-15',  km: 15,  label: '15 km' },
-        { id: 'chart-meia',km: 21.0975, label: 'Meia' }
+        { id: 'chart-5', km: 5, label: '5 km' },
+        { id: 'chart-10', km: 10, label: '10 km' },
+        { id: 'chart-15', km: 15, label: '15 km' },
+        { id: 'chart-meia', km: 21.0975, label: 'Meia' }
     ];
 
     window._charts = window._charts || {};
@@ -167,7 +170,7 @@ function gerarGraficos() {
         if (!ctx) continue;
 
         if (window._charts[d.id]) {
-            try { window._charts[d.id].destroy(); } catch(e) {}
+            try { window._charts[d.id].destroy(); } catch (e) { }
         }
 
         const dadosM = gerarDadosParaDistancia(notas, idade, 'M', d.km);
@@ -208,12 +211,12 @@ function gerarGraficos() {
                     legend: { position: 'top' },
                     tooltip: {
                         callbacks: {
-                            title: function(items) {
+                            title: function (items) {
                                 // mostrar tempo no título do tooltip
                                 const item = items[0];
                                 return item && item.raw && item.raw.x != null ? segundosParaMMSS(item.raw.x) : '';
                             },
-                            label: function(ctx) {
+                            label: function (ctx) {
                                 const v = ctx.raw;
                                 const nota = (v && v.y != null) ? v.y : '--';
                                 return (ctx.dataset.label || '') + ': Nota ' + nota;
@@ -225,7 +228,7 @@ function gerarGraficos() {
                     x: {
                         title: { display: true, text: 'Tempo (mm:ss ou hh:mm:ss)' },
                         ticks: {
-                            callback: function(value) { return segundosParaMMSS(value); }
+                            callback: function (value) { return segundosParaMMSS(value); }
                         },
                         type: 'linear',
                         position: 'bottom'
@@ -260,10 +263,10 @@ function atualizarTituloGraficos() {
 }
 
 // Chamar gerarGraficos() após carregar página e quando idade mudar
-document.addEventListener('DOMContentLoaded', function() {
-    try { gerarGraficos(); } catch (e) {}
+document.addEventListener('DOMContentLoaded', function () {
+    try { gerarGraficos(); } catch (e) { }
     const idadeInput = document.getElementById('idade');
-    if (idadeInput) idadeInput.addEventListener('change', () => { try { gerarGraficos(); } catch(e){} });
+    if (idadeInput) idadeInput.addEventListener('change', () => { try { gerarGraficos(); } catch (e) { } });
 });
 
 // Adicione estes event listeners
@@ -279,17 +282,17 @@ function atualizarTabelaNotas() {
     const distancia = parseFloat(document.getElementById('distancia').value);
     const tabelaNotas = document.getElementById('tabelaNotas');
     const idadeRef = document.getElementById('idade-ref');
-    
+
     // Atualiza a idade no título
     idadeRef.textContent = idade;
-    
+
     // Limpa a tabela
     tabelaNotas.innerHTML = '';
-    
+
     // Gera linhas para notas de 100 a 50
-    for (let nota = 100; nota >= 50; nota -= 1) {
+    for (let nota = 100; nota >= 50; nota -= nota <= 85 ? 5 : 1) {
         const resultado = tempoEPaceParaNota(nota, idade, sexo, distancia);
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${nota}</td>
@@ -312,7 +315,7 @@ function atualizarTituloReferencia() {
     const idade = document.getElementById('idade').value;
     const sexo = document.getElementById('sexo').value;
     const distancia = document.getElementById('distancia').value;
-    
+
     document.getElementById('idade-ref').textContent = idade;
     document.getElementById('distancia-ref').textContent = distancia;
     document.getElementById('sexo-ref').textContent = sexo === 'M' ? 'Masc.' : 'Fem.';
@@ -325,3 +328,64 @@ document.getElementById('distancia').addEventListener('change', atualizarTituloR
 
 // Inicializar o título
 document.addEventListener('DOMContentLoaded', atualizarTituloReferencia);
+
+document.addEventListener("DOMContentLoaded", () => {
+    const temposRefOrig = window.temposRefOrig;
+    const container = document.getElementById("temposRefOrigContent");
+
+    if (!temposRefOrig || !container) return;
+
+    // Função auxiliar para converter tempo "MM:SS" ou "HH:MM:SS" em segundos
+    const tempoParaSegundos = (tempoStr) => {
+        const partes = tempoStr.split(":").map(Number);
+        if (partes.length === 2) return partes[0] * 60 + partes[1];
+        if (partes.length === 3) return partes[0] * 3600 + partes[1] * 60 + partes[2];
+        return 0;
+    };
+
+    // Calcular pace (tempo médio por km)
+    const calcularPace = (distanciaKm, tempoStr) => {
+        const segundos = tempoParaSegundos(tempoStr);
+        const paceSeg = segundos / distanciaKm;
+        const min = Math.floor(paceSeg / 60);
+        const seg = Math.round(paceSeg % 60);
+        return `${min}:${seg.toString().padStart(2, '0')}`;
+    };
+
+    // Agrupar por sexo
+    const grupos = {};
+    for (const [distancia, { idade, tempo, sexo }] of Object.entries(temposRefOrig)) {
+        if (!grupos[sexo]) grupos[sexo] = [];
+        grupos[sexo].push({ distancia, idade, tempo, pace: calcularPace(parseFloat(distanciasBase[distancia]), tempo) });
+    }
+
+    // Gerar HTML
+    let html = "";
+    for (const [sexo, dados] of Object.entries(grupos)) {
+        html += `<h3>${sexo === 'M' ? 'Masculino' : 'Feminino'}</h3>`;
+        html += `
+            <table cellpadding="6" cellspacing="0"">
+                <thead>
+                    <tr style="background: #eee;">
+                        <th>Idade</th>
+                        <th>Distância</th>
+                        <th>Tempo</th>
+                        <th>Pace</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${dados.map(d => `
+                        <tr>
+                            <td>${d.idade}</td>
+                            <td>${d.distancia === "meia" ? "21.1 km" : distanciasBase[d.distancia] + " km"}</td>
+                            <td>${d.tempo}</td>
+                            <td>${d.pace} / km</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        `;
+    }
+
+    container.innerHTML = html;
+});
