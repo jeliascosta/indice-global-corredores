@@ -348,7 +348,7 @@ function proporcaoPorNota(nota) {
     if (nota <= nota90) {
         // transição suave 0→90: 1.6 → 1.0
         const t = (nota - nota0) / (nota90 - nota0);
-        expoente = 1.9 - 0.8 * t;
+        expoente = 2.3 - 1.2 * t;
     } else {
         // transição suave 90→100: 1.0 → 0.6
         const t = (nota - nota90) / (nota100 - nota90);
