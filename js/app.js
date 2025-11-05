@@ -98,16 +98,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const frasesHomem = {
                 '50-59': '🔥 VIBRANDOOO! 🔥',
-                '60-69': '💪🔥 CADÊNCIA, CORREDOR!!! 🔥💪',
-                '70-79': '🏃‍♂️💪 TÁ PAGO! 💪🏃‍♂️',
+                '60-69': '💪🔥 CADÊNCIA CORREDOR!!! 🔥💪',
+                '70-79': '🏃‍♂️💪 QUE TREINO TOP!! 💪🏃‍♂️',
                 '80-89': '😱🚀 SÉRIO ISSO?!! 🚀😱',
                 '90-99': '🏅⚡ DANGER ZONE ⚡🏅',
                 '100': '🏆🥇⚓ Lenda Naval ⚓🥇🏆'
             };
             const frasesMulher = {
                 '50-59': '🔥 VIBRANDOOO! 🔥',
-                '60-69': '💪🔥 CADÊNCIA, CORREDORA!!! 🔥💪',
-                '70-79': '🏃‍♂️💪 TÁ PAGO! 💪🏃‍♂️',
+                '60-69': '💪🔥 CADÊNCIA CORREDORA!!! 🔥💪',
+                '70-79': '🏃‍♂️💪 QUE TREINO TOP!! 💪🏃‍♂️',
                 '80-89': '😱🚀 SÉRIO ISSO?!! 🚀😱',
                 '90-99': '🏅⚡ DANGER ZONE ⚡🏅',
                 '100': '🏆🥇⚓ Lenda Naval ⚓🥇🏆'
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const cardHtml = `
                 <div class="share-card" style="background: linear-gradient(180deg, ${bgStart}, ${bgEnd}); color:${textColor}">
                     <div class="share-top">
-                        <span class="main">Meu IGDCC<span class="rev">REV2</span></span>
+                        <span class="main">IGDCC<span class="rev">REV2</span></span>
                         <div class="card-date" style="font-size:.7rem;font-weight:lighter;opacity:.8;margin-top:3px; margin-bottom: 5px">${hoje}</div>
                         </div>
                     <div class="score-big">${inteiro}</div>
