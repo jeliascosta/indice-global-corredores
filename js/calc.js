@@ -493,21 +493,18 @@ function calcularNota(tempo, idade, sexo, distanciaKm) {
         }
     }
 
-    // se o tempo for melhor que o tempoRef, extrapola nota acima de 100
+    // se o tempo for melhor que o tempoRef, retorna 100 (não extrapolar acima de 100)
     const tempoRefSeg = tempoParaSegundos(tempoEPaceParaNota(100, idade, sexo, distanciaKm).tempo);
     if (tempoSeg <= tempoRefSeg) {
-        // diferença percentual
-        const ganho = (tempoRefSeg - tempoSeg) / tempoRefSeg;
-        // cada 1% mais rápido = +5 pontos (ajustável)
-        const bonus = ganho * 500;
-        return Math.min(200, 100 + bonus); // teto 200 por segurança
+        return 100;
     }
 
     // idem para o limite inferior
     const tempoZero = tempoEPaceParaNota(0, idade, sexo, distanciaKm).tempo;
-    if (tempoParaSegundos(tempo) >= tempoParaSegundos(tempoZero)) return 0.0;
+    if (tempoParaSegundos(tempo) >= tempoParaSegundos(tempoZero)) return 0;
 
-    return Math.floor(nota);
+    // retorna nota final limitada entre 0 e 100 (inteiro)
+    return Math.max(0, Math.min(100, Math.floor(nota)));
 }
 
 // --- Função inversa: dado nota → tempo e pace ---
