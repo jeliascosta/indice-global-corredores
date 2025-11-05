@@ -297,9 +297,17 @@ tr:hover {
 
 /* frase descritiva */
 .share-card .zone-phrase{
-    font-size: 0.9rem;
-    opacity: 0.95;
-    margin-top: 6px;
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    font-size: 0.95rem;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10); /* leve "pill" para destacar */
+    color: inherit;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.10);
+    backdrop-filter: blur(4px);
 }
 
 /* pequeno label de revisão ao lado de "Meu IGDCC" */
