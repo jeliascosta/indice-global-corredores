@@ -500,62 +500,82 @@ document.getElementById('distancia').addEventListener('change', atualizarTituloR
 document.addEventListener('DOMContentLoaded', atualizarTituloReferencia);
 
 document.addEventListener("DOMContentLoaded", () => {
-    const temposRefOrig = window.temposRefOrig;
+    const metasTop = window.temposRefOrig;
     const container = document.getElementById("temposRefOrigContent");
+    if (!metasTop || !container) return;
 
-    if (!temposRefOrig || !container) return;
-
-    // Função auxiliar para converter tempo "MM:SS" ou "HH:MM:SS" em segundos
+    // --- Funções auxiliares ---
     const tempoParaSegundos = (tempoStr) => {
+        if (!tempoStr) return 0;
         const partes = tempoStr.split(":").map(Number);
         if (partes.length === 2) return partes[0] * 60 + partes[1];
         if (partes.length === 3) return partes[0] * 3600 + partes[1] * 60 + partes[2];
         return 0;
     };
 
-    // Calcular pace (tempo médio por km)
-    const calcularPace = (distanciaKm, tempoStr) => {
-        const segundos = tempoParaSegundos(tempoStr);
-        const paceSeg = segundos / distanciaKm;
-        const min = Math.floor(paceSeg / 60);
-        const seg = Math.round(paceSeg % 60);
-        return `${min}:${seg.toString().padStart(2, '0')}`;
+    const segundosParaTempo = (seg) => {
+        const min = Math.floor(seg / 60);
+        const s = Math.round(seg % 60);
+        return `${min}:${s.toString().padStart(2, "0")}`;
     };
 
-    // Agrupar por sexo
-    const grupos = {};
-    for (const [distancia, { idade, tempo, sexo }] of Object.entries(temposRefOrig)) {
-        if (!grupos[sexo]) grupos[sexo] = [];
-        grupos[sexo].push({ distancia, idade, tempo, pace: calcularPace(parseFloat(distanciasBase[distancia]), tempo) });
+    const calcularPace = (distanciaKm, tempoStr) => {
+        const segundos = tempoParaSegundos(tempoStr);
+        if (!segundos || !distanciaKm) return "--:--";
+        const paceSeg = segundos / distanciaKm;
+        return segundosParaTempo(paceSeg);
+    };
+
+    // --- Gera tabela ---
+    let html = `
+        <table cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+            <thead>
+                <tr style="background: #eee;">
+                    <th>Distância</th>
+                    <th>Sexo</th>
+                    <th>Idade</th>
+                    <th>Tempo</th>
+                    <th>Pace / km</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (const [distancia, dados] of Object.entries(metasTop)) {
+        // Normaliza a distância (ex.: "meia" → 21.1 km)
+        const km = distancia.includes("meia")
+            ? 21.1
+            : parseFloat(distancia.replace("km", "").replace(",", "."));
+
+        // Exibe apenas metas existentes
+        if (dados.M) {
+            const { idade, tempo } = dados.M;
+            html += `
+                <tr style="background:#e8f0ff">
+                    <td>${distancia}</td>
+                    <td>M</td>
+                    <td>${idade}</td>
+                    <td>${tempo}</td>
+                    <td>${calcularPace(km, tempo)}</td>
+                </tr>
+            `;
+        }
+
+        if (dados.F) {
+            const { idade, tempo } = dados.F;
+            html += `
+                <tr style="background:#ffe8f0">
+                    <td>${distancia}</td>
+                    <td>F</td>
+                    <td>${idade}</td>
+                    <td>${tempo}</td>
+                    <td>${calcularPace(km, tempo)}</td>
+                </tr>
+            `;
+        }
     }
 
-    // Gerar HTML
-    let html = "";
-    for (const [sexo, dados] of Object.entries(grupos)) {
-        html += `<h3>${sexo === 'M' ? 'Masculino' : 'Feminino'}</h3>`;
-        html += `
-            <table cellpadding="6" cellspacing="0"">
-                <thead>
-                    <tr style="background: #eee;">
-                        <th>Idade</th>
-                        <th>Distância</th>
-                        <th>Tempo</th>
-                        <th>Pace</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${dados.map(d => `
-                        <tr>
-                            <td>${d.idade}</td>
-                            <td>${d.distancia === "meia" ? "21.1 km" : distanciasBase[d.distancia] + " km"}</td>
-                            <td>${d.tempo}</td>
-                            <td>${d.pace} / km</td>
-                        </tr>
-                    `).join("")}
-                </tbody>
-            </table>
-        `;
-    }
-
+    html += "</tbody></table>";
     container.innerHTML = html;
 });
+

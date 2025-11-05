@@ -1,11 +1,24 @@
 // -------------------TABELAS DE REFERÊNCIA----------------------------
 
 // --- Tabela de referência (nota 100) ---
+// Agora cada distância pode ter metas separadas por sexo (M e F)
+// Se faltar um dos sexos, ele será derivado automaticamente pelo fatorSexo
 const metasTop = {
-    "2.4km": { idade: 30, tempo: "08:14", sexo: 'M' },
-    "5km": { idade: 46, tempo: "26:40", sexo: 'F' },
-    "10km": { idade: 38, tempo: "40:00", sexo: 'M' },
-    "meia": { idade: 46, tempo: "120:00", sexo: 'F' }
+    "2.4km": {
+        M: { idade: 30, tempo: "08:14" }
+        // F será derivada de M se faltar
+    },
+    "5km": {
+        F: { idade: 46, tempo: "26:40" }
+    },
+    "10km": {
+        F: { idade: 46, tempo: "56:40" },
+        M: { idade: 38, tempo: "40:00" },
+    },
+    "meia": {
+        F: { idade: 46, tempo: "120:00" }
+        // M será derivado automaticamente
+    }
 };
 window.temposRefOrig = metasTop; // Expor para index.html
 
@@ -19,6 +32,8 @@ const distanciasBase = {
 window.distanciasBase = distanciasBase; // Expor para index.html
 
 // -------------------FATORES DE IDADE----------------------------
+
+// (mantém os fatores de idade e sexo originais do seu código)
 
 // --- Fatores por idade ---
 // const fatorIdadeMascMarujo = [
@@ -167,25 +182,58 @@ function interpolarFatorIdadePorDistancia(idade, sexo) {
 // -------------------TEMPOS DE REFERÊNCIA----------------------------
 
 /// --- Gera tempos ajustados por sexo, mas ainda na idade base ---
+// -------------------TEMPOS DE REFERÊNCIA----------------------------
+
+/// --- Gera tempos ajustados por sexo, mas ainda na idade base ---
 const temposRefBase = {};
 for (const distancia in metasTop) {
     temposRefBase[distancia] = {};
-    const sexoOrig = metasTop[distancia].sexo;
-    const idadeOrig = metasTop[distancia].idade;
-    const tSegOrig = tempoParaSegundos(metasTop[distancia].tempo);
 
-    for (const sexo of ['M', 'F']) {
-        let tSeg = tSegOrig;
+    const base = metasTop[distancia];
 
-        if (sexo !== sexoOrig) {
-            // Ajuste de sexo usando fatores
-            const sexoFator = interpolarArray(fatorSexo, idadeOrig);
-            tSeg = sexo === 'F' ? tSeg * sexoFator : tSeg / sexoFator;
-        }
+    // Captura meta M e F (podem ser indefinidas)
+    const metaM = base.M ? { ...base.M } : null;
+    const metaF = base.F ? { ...base.F } : null;
 
-        temposRefBase[distancia][sexo] = { tSeg, idadeOrig };
+    // Converter para segundos, se existir
+    const tM = metaM ? tempoParaSegundos(metaM.tempo) : null;
+    const tF = metaF ? tempoParaSegundos(metaF.tempo) : null;
+
+    if (tM && !tF) {
+        // Deriva F a partir de M com fatorSexo pela idade base
+        const fator = interpolarArray(fatorSexo, metaM.idade);
+        const tDerivado = tM * fator;
+        temposRefBase[distancia]["F"] = {
+            idadeOrig: metaM.idade,
+            tSeg: tDerivado,
+            derivadoDe: "M"
+        };
+    } else if (!tM && tF) {
+        // Deriva M a partir de F com fatorSexo pela idade base
+        const fator = interpolarArray(fatorSexo, metaF.idade);
+        const tDerivado = tF / fator;
+        temposRefBase[distancia]["M"] = {
+            idadeOrig: metaF.idade,
+            tSeg: tDerivado,
+            derivadoDe: "F"
+        };
+    }
+
+    // --- Armazena os que já existem ---
+    if (tM) {
+        temposRefBase[distancia]["M"] = {
+            idadeOrig: metaM.idade,
+            tSeg: tM
+        };
+    }
+    if (tF) {
+        temposRefBase[distancia]["F"] = {
+            idadeOrig: metaF.idade,
+            tSeg: tF
+        };
     }
 }
+
 
 // --- Parâmetro global do expoente Riegel ajustado (amador) ---
 const EXPOENTE_RIEGEL_AMADOR = 1.07;
@@ -263,6 +311,59 @@ function tempoRiegel(t1, d1, d2, expoente = EXPOENTE_RIEGEL_AMADOR) {
 // }
 
 // --- Função tempoRefPorDistanciaExp apenas interpolação ---
+// function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
+//     const sexoUp = sexo.toUpperCase();
+//     const dKm = parseFloat(distanciaKm);
+//     const nomes = Object.keys(distanciasBase).map(k => ({
+//         nome: k,
+//         km: distanciasBase[k]
+//     }));
+
+//     // --- Encontra a distância mais próxima (maior em caso de empate) ---
+//     let maisProxima = nomes[0];
+//     let menorDiff = Math.abs(dKm - maisProxima.km);
+//     for (let i = 1; i < nomes.length; i++) {
+//         const diff = Math.abs(dKm - nomes[i].km);
+//         if (diff < menorDiff || (diff === menorDiff && nomes[i].km > maisProxima.km)) {
+//             maisProxima = nomes[i];
+//             menorDiff = diff;
+//         }
+//     }
+
+//     // --- Se distância exata ---
+//     if (Math.abs(maisProxima.km - dKm) < 0.001) {
+//         const base = temposRefBase[maisProxima.nome][sexoUp];
+//         const fatorOrig = interpolarFatorIdadePorDistancia(base.idadeOrig, sexoUp);
+//         const fatorDesejado = interpolarFatorIdadePorDistancia(idade, sexoUp);
+//         return base.tSeg * (fatorDesejado / fatorOrig);
+//     }
+
+//     // --- Determinar vizinhas ---
+//     let menor = nomes[0], maior = nomes[nomes.length - 1];
+//     for (let i = 1; i < nomes.length; i++) {
+//         if (dKm <= nomes[i].km) {
+//             menor = nomes[i - 1];
+//             maior = nomes[i];
+//             break;
+//         }
+//     }
+
+//     // --- Ajustes de idade ---
+//     const fator = interpolarFatorIdadePorDistancia(idade, sexoUp);
+//     const baseMenor = temposRefBase[menor.nome][sexoUp];
+//     const baseMaior = temposRefBase[maior.nome][sexoUp];
+//     const tMenor = baseMenor.tSeg *
+//         (fator / interpolarFatorIdadePorDistancia(baseMenor.idadeOrig, sexoUp));
+//     const tMaior = baseMaior.tSeg *
+//         (fator / interpolarFatorIdadePorDistancia(baseMaior.idadeOrig, sexoUp));
+
+//     // --- Interpolação linear entre distâncias conhecidas ---
+//     const p = (dKm - menor.km) / (maior.km - menor.km);
+//     const tInterp = tMenor + (tMaior - tMenor) * p;
+
+//     return tInterp;
+// }
+
 function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
     const sexoUp = sexo.toUpperCase();
     const dKm = parseFloat(distanciaKm);
@@ -282,9 +383,29 @@ function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
         }
     }
 
+    // --- Fator sexo baseado em idade ---
+    const fator = interpolarArray(fatorSexo, idade);
+    const fatorCorr = sexoUp === "F" ? fator : 1 / fator;
+
+    // --- Deriva meta de outro sexo, se faltar ---
+    const derivarMeta = (dist, sexoDerivar) => {
+        const outro = sexoDerivar === "M" ? "F" : "M";
+        const baseOutro = temposRefBase?.[dist.nome]?.[outro];
+        if (!baseOutro) return null;
+        const fatorLocal = interpolarArray(fatorSexo, idade);
+        const fatorCorrLocal = sexoDerivar === "F" ? fatorLocal : 1 / fatorLocal;
+        return {
+            idadeOrig: baseOutro.idadeOrig,
+            tSeg: baseOutro.tSeg * fatorCorrLocal
+        };
+    };
+
     // --- Se distância exata ---
     if (Math.abs(maisProxima.km - dKm) < 0.001) {
-        const base = temposRefBase[maisProxima.nome][sexoUp];
+        let base = temposRefBase[maisProxima.nome]?.[sexoUp];
+        if (!base) base = derivarMeta(maisProxima, sexoUp);
+        if (!base) return null; // nenhum dos sexos tem meta
+
         const fatorOrig = interpolarFatorIdadePorDistancia(base.idadeOrig, sexoUp);
         const fatorDesejado = interpolarFatorIdadePorDistancia(idade, sexoUp);
         return base.tSeg * (fatorDesejado / fatorOrig);
@@ -300,21 +421,27 @@ function tempoRefPorDistanciaExp(distanciaKm, idade, sexo) {
         }
     }
 
+    // --- Garantir que sempre haja base válida (ou derivada) ---
+    let baseMenor = temposRefBase?.[menor.nome]?.[sexoUp] || derivarMeta(menor, sexoUp);
+    let baseMaior = temposRefBase?.[maior.nome]?.[sexoUp] || derivarMeta(maior, sexoUp);
+
+    // Tenta derivar fallback cruzado se mesmo assim faltar (ex.: só há M em menor, e só há F em maior)
+    if (!baseMenor && baseMaior) baseMenor = derivarMeta(maior, sexoUp);
+    if (!baseMaior && baseMenor) baseMaior = derivarMeta(menor, sexoUp);
+
+    // Se ainda faltar, aborta
+    if (!baseMenor || !baseMaior) return null;
+
     // --- Ajustes de idade ---
-    const fator = interpolarFatorIdadePorDistancia(idade, sexoUp);
-    const baseMenor = temposRefBase[menor.nome][sexoUp];
-    const baseMaior = temposRefBase[maior.nome][sexoUp];
-    const tMenor = baseMenor.tSeg *
-        (fator / interpolarFatorIdadePorDistancia(baseMenor.idadeOrig, sexoUp));
-    const tMaior = baseMaior.tSeg *
-        (fator / interpolarFatorIdadePorDistancia(baseMaior.idadeOrig, sexoUp));
+    const fatorIdade = interpolarFatorIdadePorDistancia(idade, sexoUp);
+    const tMenor = baseMenor.tSeg * (fatorIdade / interpolarFatorIdadePorDistancia(baseMenor.idadeOrig, sexoUp));
+    const tMaior = baseMaior.tSeg * (fatorIdade / interpolarFatorIdadePorDistancia(baseMaior.idadeOrig, sexoUp));
 
     // --- Interpolação linear entre distâncias conhecidas ---
     const p = (dKm - menor.km) / (maior.km - menor.km);
-    const tInterp = tMenor + (tMaior - tMenor) * p;
-
-    return tInterp;
+    return tMenor + (tMaior - tMenor) * p;
 }
+
 
 
 // -------------------CÁLCULO DE NOTAS----------------------------
