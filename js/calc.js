@@ -116,7 +116,7 @@ const fatorSexo = [
     { teto: 33, fator: 1.200 }, //Marujo
     { teto: 39, fator: 1.185 }, //Marujo
     { teto: 45, fator: 1.174 }, //Naval
-    { teto: 49, fator: 1.091 }, //Naval
+    { teto: 49, fator: 1.210 }, //Naval
     { teto: 54, fator: 1.220 }, //Naval
     { teto: 60, fator: 1.210 }  //Naval
 ];
