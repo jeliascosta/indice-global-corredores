@@ -16,7 +16,7 @@ const metasTop = {
         M: { idade: 38, tempo: "40:00" },
     },
     "meia": {
-        F: { idade: 46, tempo: "120:00" }
+        F: { idade: 46, tempo: "125:00" }
         // M será derivado automaticamente
     }
 };
