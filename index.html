@@ -57,7 +57,36 @@
         </form>
 
         <div id="resultado">
-            <div id="nota"></div>
+            <div id="nota">
+                <div class="share-card" id="shareCard" style="display: none;">
+                    <div class="share-top" style="position: relative; text-align: center;margin-bottom: 2px;">
+                        <img src="img/heraldica.png" alt="Heraldica" style="position: absolute; left: calc(50% - 48px); height: 30px; width: auto; top: 50%; transform: translateY(-60%);">
+                        <div style="display: inline-block;">
+                            <span class="main">IGDCC<span class="rev">REV2</span></span>
+                            <div class="card-date" id="cardDate"
+                                style="font-size:.7rem;font-weight:lighter;opacity:.8;margin-top:3px; margin-bottom: 5px">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="score-big" id="scoreBig"></div>
+                    <div id="scoreDistancia"
+                        style="font-family: 'Inter', sans-serif; font-size: 2.7rem; font-weight: 800; text-align: center; width: 100%; line-height: 1; letter-spacing: -0.04em;">
+                    </div>
+                    <div class="zone-small" id="zoneSmall"></div>
+                    <div class="card-meta"
+                        style="display:flex;gap:12px;margin-top:8px;align-items:center;justify-content:center;">
+                        <div class="meta-item" style="text-align:center">
+                            <div style="font-size:.75rem;font-weight:700;opacity:.9">🕒 Tempo</div>
+                            <div style="font-size:.95rem;font-weight:800" id="cardTempo"></div>
+                        </div>
+                        <div class="meta-item" style="text-align:center">
+                            <div style="font-size:.75rem;font-weight:700;opacity:.9">🏃🏻‍♂️‍➡️ Pace</div>
+                            <div style="font-size:.95rem;font-weight:800" id="cardPace"></div>
+                        </div>
+                    </div>
+                    <div class="zone-phrase" id="zonePhrase"></div>
+                </div>
+            </div>
             <div style="text-align:center; margin-top:10px;">
                 <button type="button" id="copyCardBtn" style="display:none;">📋 Compartilhar Card</button>
             </div>
@@ -69,7 +98,20 @@
         <div id="tempos-ref-orig" class="tempos-ref-orig tabela-referencia">
             <h2>Metas Top</h2>
             <div id="temposRefOrigContent">
-                <!-- calc.js deve preencher este elemento com o conteúdo de temposRefOrig -->
+                <table cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #eee;">
+                            <th>Distância</th>
+                            <th>Sexo</th>
+                            <th>Idade</th>
+                            <th>Tempo</th>
+                            <th>Pace / km</th>
+                        </tr>
+                    </thead>
+                    <tbody id="temposRefOrigTbody">
+                        <!-- preenchido via JavaScript -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -88,6 +130,7 @@
                     </thead>
                     <tbody id="tabelaNotas">
                         <!-- preenchido via JavaScript -->
+                        <!-- Estrutura estática: linhas serão adicionadas dinamicamente -->
                     </tbody>
                 </table>
             </div>
@@ -182,8 +225,8 @@
 
     <script>
         document.getElementById('copyCardBtn').addEventListener('click', async () => {
-            const card = document.querySelector('.share-card');
-            if (!card) {
+            const card = document.getElementById('shareCard');
+            if (!card || card.style.display === 'none') {
                 alert('Nenhum card gerado ainda!');
                 return;
             }

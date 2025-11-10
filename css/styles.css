@@ -281,7 +281,8 @@ tr:hover {
 
 /* nota grande — destaque (big number) */
 .share-card .score-big{
-    font-size: 4.2rem;      /* maior que antes */
+    font-family: 'Inter', sans-serif;
+    font-size: 5.5rem;      /* maior que antes */
     font-weight: 900;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -339,13 +340,6 @@ tr:hover {
     align-items:flex-end; /* coloca número e zona mais à esquerda visualmente quando meta está ao lado */
     gap:4px;
     min-width:120px;
-}
-
-/* mantém score grande */
-.share-card .score-big{
-      font-family: 'Inter', sans-serif;
-    font-size:4.2rem;
-    font-weight:900;
 }
 
 /* zona pequena abaixo do score */

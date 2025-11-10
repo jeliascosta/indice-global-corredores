@@ -44,6 +44,12 @@ function preencherTabelaReferencia() {
     }
 }
 
+// Função helper para obter distância formatada para 1 casa decimal (usada nos cálculos)
+function getDistanciaFormatada() {
+    const valor = parseFloat(document.getElementById('distancia').value);
+    return !isNaN(valor) ? parseFloat(valor.toFixed(1)) : valor;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Controle de exibição dos campos de entrada
     const radioButtons = document.querySelectorAll('input[name="tipoEntrada"]');
@@ -73,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const tipoEntrada = document.querySelector('input[name="tipoEntrada"]:checked').value;
         const idade = parseInt(document.getElementById('idade').value);
         const sexo = document.getElementById('sexo').value;
-        const distancia = parseFloat(document.getElementById('distancia').value);
+        const distancia = getDistanciaFormatada();
 
         try {
             let nota;
@@ -209,8 +215,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (e) { /* segura se inputs faltarem */ }
 
             const distLabel = Number.isFinite(distancia)
-                ? (distancia % 1 === 0 ? `${distancia} km` : `${distancia.toFixed(2)} km`)
-                : '-- km';
+                ? (distancia % 1 === 0 ? `${distancia} k` : `${distancia.toFixed(1)} k`)
+                : '-- k';
 
 
             const hoje = (() => {
@@ -221,43 +227,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 return `${dia}/${mes}/${ano}`;
             })();
 
-            const cardHtml = `
-                <div class="share-card" style="background: linear-gradient(180deg, ${bgStart}, ${bgEnd}); color:${textColor}">
-                    <div class="share-top">
-                        <span class="main">IGDCC<span class="rev">REV2</span></span>
-                        <div class="card-date" style="font-size:.7rem;font-weight:lighter;opacity:.8;margin-top:3px; margin-bottom: 5px">${hoje}</div>
-                        </div>
-                    <div class="score-big">${inteiro}</div>
-                    <div class="zone-small">${zone}</div>
-                    <div class="card-meta" style="display:flex;gap:12px;margin-top:8px;align-items:center;justify-content:center;">
-                        <div class="meta-item" style="text-align:center">
-                            <div style="font-size:.75rem;font-weight:700;opacity:.9">🛣️ Distância</div>
-                            <div style="font-size:.95rem;font-weight:800">${distLabel}</div>
-                        </div>
-                        <div class="meta-item" style="text-align:center">
-                            <div style="font-size:.75rem;font-weight:700;opacity:.9">🕒 Tempo</div>
-                            <div style="font-size:.95rem;font-weight:800">${displayTempo}</div>
-                        </div>
-                        <div class="meta-item" style="text-align:center">
-                            <div style="font-size:.75rem;font-weight:700;opacity:.9">🏃🏻‍♂️‍➡️ Pace</div>
-                            <div style="font-size:.95rem;font-weight:800">${displayPace} /km</div>
-                        </div>
-                    </div>
-                    <div class="zone-phrase">${phrase}</div>
-                </div>
-            `;
-            document.getElementById('nota').innerHTML = cardHtml;
+            // Preenche a estrutura HTML estática do card
+            const shareCardEl = document.getElementById('shareCard');
+            shareCardEl.style.background = `linear-gradient(180deg, ${bgStart}, ${bgEnd})`;
+            shareCardEl.style.color = textColor;
+            shareCardEl.style.display = 'block';
+
+            document.getElementById('cardDate').textContent = hoje;
+            document.getElementById('scoreBig').textContent = inteiro;
+            document.getElementById('scoreDistancia').textContent = distLabel;
+            document.getElementById('zoneSmall').textContent = zone;
+            document.getElementById('cardTempo').textContent = displayTempo;
+            document.getElementById('cardPace').textContent = `${displayPace} /km`;
+            document.getElementById('zonePhrase').textContent = phrase;
             // Exibe o botão copiar se o card existir
             const copyBtn = document.getElementById('copyCardBtn');
-            if (document.querySelector('.share-card')) {
+            const shareCard = document.getElementById('shareCard');
+            if (shareCard && shareCard.style.display !== 'none') {
                 copyBtn.style.display = 'inline-block';
             } else {
                 copyBtn.style.display = 'none';
             }
 
         } catch (error) {
-            document.getElementById('nota').textContent =
-                `Erro: ${error.message}`;
+            const shareCard = document.getElementById('shareCard');
+            if (shareCard) {
+                shareCard.style.display = 'none';
+            }
+            document.getElementById('nota').innerHTML = `<div style="color: red;">Erro: ${error.message}</div>`;
         }
     });
 
@@ -445,7 +442,7 @@ atualizarTituloGraficos();
 function atualizarTabelaNotas() {
     const idade = parseInt(document.getElementById('idade').value);
     const sexo = document.getElementById('sexo').value;
-    const distancia = parseFloat(document.getElementById('distancia').value);
+    const distancia = getDistanciaFormatada();
     const tabelaNotas = document.getElementById('tabelaNotas');
     const idadeRef = document.getElementById('idade-ref');
 
@@ -497,8 +494,7 @@ document.addEventListener('DOMContentLoaded', atualizarTituloReferencia);
 
 document.addEventListener("DOMContentLoaded", () => {
     const metasTop = window.temposRefOrig;
-    const container = document.getElementById("temposRefOrigContent");
-    if (!metasTop || !container) return;
+    if (!metasTop) return;
 
     // --- Funções auxiliares ---
     const tempoParaSegundos = (tempoStr) => {
@@ -522,20 +518,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return segundosParaTempo(paceSeg);
     };
 
-    // --- Gera tabela ---
-    let html = `
-        <table cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
-            <thead>
-                <tr style="background: #eee;">
-                    <th>Distância</th>
-                    <th>Sexo</th>
-                    <th>Idade</th>
-                    <th>Tempo</th>
-                    <th>Pace / km</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    // --- Preenche tabela estática ---
+    const tbody = document.getElementById("temposRefOrigTbody");
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
 
     for (const [distancia, dados] of Object.entries(metasTop)) {
         // Normaliza a distância (ex.: "meia" → 21.1 km)
@@ -546,32 +533,31 @@ document.addEventListener("DOMContentLoaded", () => {
         // Exibe apenas metas existentes
         if (dados.M) {
             const { idade, tempo } = dados.M;
-            html += `
-                <tr style="background:#e8f0ff">
-                    <td>${distancia}</td>
-                    <td>M</td>
-                    <td>${idade}</td>
-                    <td>${tempo}</td>
-                    <td>${calcularPace(km, tempo)}</td>
-                </tr>
+            const tr = document.createElement('tr');
+            tr.style.background = '#e8f0ff';
+            tr.innerHTML = `
+                <td>${distancia}</td>
+                <td>M</td>
+                <td>${idade}</td>
+                <td>${tempo}</td>
+                <td>${calcularPace(km, tempo)}</td>
             `;
+            tbody.appendChild(tr);
         }
 
         if (dados.F) {
             const { idade, tempo } = dados.F;
-            html += `
-                <tr style="background:#ffe8f0">
-                    <td>${distancia}</td>
-                    <td>F</td>
-                    <td>${idade}</td>
-                    <td>${tempo}</td>
-                    <td>${calcularPace(km, tempo)}</td>
-                </tr>
+            const tr = document.createElement('tr');
+            tr.style.background = '#ffe8f0';
+            tr.innerHTML = `
+                <td>${distancia}</td>
+                <td>F</td>
+                <td>${idade}</td>
+                <td>${tempo}</td>
+                <td>${calcularPace(km, tempo)}</td>
             `;
+            tbody.appendChild(tr);
         }
     }
-
-    html += "</tbody></table>";
-    container.innerHTML = html;
 });
 
