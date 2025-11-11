@@ -144,22 +144,40 @@ tr:hover {
     display: block;
 }
 
-/* .tabela-notas {
-    margin: 2rem 0;
+/* composição de imagem (print + card) */
+#compositor .compose-controls {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
 }
 
-.tabela-notas table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-}
-*/
-.tabela-notas th,
-.tabela-notas td {
-    padding: 0.5rem;
+#composeWrap {
+  padding: 0.5rem;
     text-align: center;
     border: 1px solid #ddd;
 }
+
+#compositor .compose-upload {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#compositor .compose-drag {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#compositor .compose-export {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 /* 
 .tabela-notas th {
     background-color: #f5f5f5;

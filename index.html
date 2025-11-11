@@ -93,6 +93,22 @@
 
         </div>
 
+        <div id="compositor" style="margin-top: 16px;">
+            <div class="compose-controls">
+                <input type="file" id="composeInput" accept="image/*" class="compose-upload">
+                <label for="composeScale" style="display:inline-flex; align-items:center; gap:6px;">
+                    Tamanho do card
+                    <input type="range" id="composeScale" min="40" max="160" value="100" step="1" style="width:140px;">
+                    <span id="composeScaleLabel">100%</span>
+                </label>
+                <button type="button" id="composeExport" class="compose-export" disabled>Baixar imagem</button>
+            </div>
+            <div id="composeWrap" style="position: relative; display: inline-block;">
+                <img id="composeImg" alt="" style="max-width: 100%; height: auto; display: none;">
+                <div id="composeOverlay" style="position: absolute; inset: 0; pointer-events: auto;"></div>
+            </div>
+        </div>
+
         <hr style="margin-top: 20px;" />
         <!-- Seção: temposRefOrig (inserida) -->
         <div id="tempos-ref-orig" class="tempos-ref-orig tabela-referencia">

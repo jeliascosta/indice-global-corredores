@@ -253,7 +253,11 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 copyBtn.style.display = 'none';
             }
-
+            // Sincroniza o card no compositor com o novo conteúdo e largura
+            try {
+                if (typeof updateOverlayCardFromShareCard === 'function') updateOverlayCardFromShareCard();
+                if (typeof recalibrateOverlayWidthFromSource === 'function') recalibrateOverlayWidthFromSource();
+            } catch (_) {}
         } catch (error) {
             const shareCard = document.getElementById('shareCard');
             if (shareCard) {
@@ -435,6 +439,8 @@ document.addEventListener('DOMContentLoaded', function () {
     try { gerarGraficos(); } catch (e) { }
     const idadeInput = document.getElementById('idade');
     if (idadeInput) idadeInput.addEventListener('change', () => { try { gerarGraficos(); } catch (e) { } });
+    // Inicializa compositor após DOM pronto
+    try { setupCompositor(); } catch (e) { console.warn('Compositor não inicializado:', e); }
 });
 
 // Adicione estes event listeners
@@ -496,6 +502,360 @@ document.getElementById('distancia').addEventListener('change', atualizarTituloR
 
 // Inicializar o título
 document.addEventListener('DOMContentLoaded', atualizarTituloReferencia);
+
+// ============================
+// Compositor: upload + overlay
+// ============================
+let _compose = null;
+
+function setupCompositor() {
+    const input = document.getElementById('composeInput');
+    const img = document.getElementById('composeImg');
+    const overlay = document.getElementById('composeOverlay');
+    const exportBtn = document.getElementById('composeExport');
+    const wrap = document.getElementById('composeWrap');
+    const scaleInput = document.getElementById('composeScale');
+    const scaleLabel = document.getElementById('composeScaleLabel');
+
+    if (!input || !img || !overlay || !exportBtn || !wrap) return;
+
+    _compose = { input, img, overlay, exportBtn, wrap, scaleInput, scaleLabel, cardEl: null, dragging: false, dragOff: { x: 0, y: 0 }, baseWidth: null, frozenBaseWidth: null, scale: 100, metrics: null };
+
+    input.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            img.src = reader.result;
+            img.style.display = 'block';
+            exportBtn.disabled = false;
+            // Não recriar o overlay card ao carregar imagem para evitar drift de largura
+            if (!_compose.cardEl) {
+                ensureOverlayCard();
+            } else {
+                applyOverlayWidthFromBase();
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Slider para tamanho do card (preserva proporção)
+    if (scaleInput) {
+        const applyScale = (val) => {
+            _compose.scale = Number(val) || 100;
+            if (_compose.cardEl) {
+                const s = (_compose.scale / 100);
+                _compose.cardEl.style.transformOrigin = 'top left';
+                _compose.cardEl.style.transform = `scale(${s})`;
+            }
+            if (scaleLabel) scaleLabel.textContent = `${_compose.scale}%`;
+        };
+        scaleInput.addEventListener('input', (ev) => applyScale(ev.target.value));
+        // Label inicial + aplicar transform inicial
+        if (scaleLabel) scaleLabel.textContent = `${scaleInput.value}%`;
+        // aplica no estado atual, se já houver card
+        if (_compose.cardEl) {
+            const s = (Number(scaleInput.value || 100) / 100);
+            _compose.cardEl.style.transformOrigin = 'top left';
+            _compose.cardEl.style.transform = `scale(${s})`;
+        }
+    }
+
+    // Drag handlers (mouse + touch)
+    const startDrag = (cx, cy) => {
+        if (!_compose || !_compose.cardEl) return;
+        _compose.dragging = true;
+        const rect = _compose.cardEl.getBoundingClientRect();
+        _compose.dragOff.x = cx - rect.left;
+        _compose.dragOff.y = cy - rect.top;
+        document.body.style.userSelect = 'none';
+    };
+    const moveDrag = (cx, cy) => {
+        if (!_compose || !_compose.dragging || !_compose.cardEl) return;
+        // Converte client coords para coords relativas ao overlay
+        const oRect = _compose.overlay.getBoundingClientRect();
+        let x = cx - oRect.left - _compose.dragOff.x;
+        let y = cy - oRect.top - _compose.dragOff.y;
+        // limitar dentro do overlay
+        const cRect = _compose.cardEl.getBoundingClientRect(); // já considera transform(scale)
+        const maxX = oRect.width - cRect.width;
+        const maxY = oRect.height - cRect.height;
+        x = Math.max(0, Math.min(maxX, x));
+        y = Math.max(0, Math.min(maxY, y));
+        _compose.cardEl.style.left = x + 'px';
+        _compose.cardEl.style.top = y + 'px';
+    };
+    const endDrag = () => {
+        if (_compose) _compose.dragging = false;
+        document.body.style.userSelect = '';
+    };
+
+    // mouse
+    overlay.addEventListener('mousedown', (ev) => {
+        if (!_compose.cardEl) return;
+        startDrag(ev.clientX, ev.clientY);
+        ev.preventDefault();
+    });
+    window.addEventListener('mousemove', (ev) => moveDrag(ev.clientX, ev.clientY));
+    window.addEventListener('mouseup', endDrag);
+    // touch
+    overlay.addEventListener('touchstart', (ev) => {
+        if (!ev.touches || !ev.touches[0]) return;
+        const t = ev.touches[0];
+        startDrag(t.clientX, t.clientY);
+        ev.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchmove', (ev) => {
+        if (!ev.touches || !ev.touches[0]) return;
+        const t = ev.touches[0];
+        moveDrag(t.clientX, t.clientY);
+    }, { passive: false });
+    window.addEventListener('touchend', endDrag);
+
+    exportBtn.addEventListener('click', async () => {
+        if (!_compose || !_compose.img.src) return;
+        try {
+            const canvas = await html2canvas(wrap, { backgroundColor: null, useCORS: true, scale: 2 });
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'igdcc-share.png';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (e) {
+            console.error('Falha ao exportar imagem composta:', e);
+            alert('Não foi possível gerar a imagem.');
+        }
+    });
+
+    // cria card se já existir ao carregar
+    ensureOverlayCard();
+}
+
+function ensureOverlayCard() {
+    if (!_compose) return;
+    const srcCard = document.getElementById('shareCard');
+    if (!srcCard || srcCard.style.display === 'none') return;
+    if (_compose.cardEl && _compose.cardEl.parentElement) {
+        // atualizar conteúdo
+        const posLeft = _compose.cardEl.style.left;
+        const posTop = _compose.cardEl.style.top;
+        const totalW = (_compose.baseWidth != null) ? _compose.baseWidth : _compose.cardEl.getBoundingClientRect().width;
+        _compose.cardEl.replaceWith(cloneShareCard(srcCard));
+        _compose.cardEl = _compose.overlay.querySelector('.share-card');
+        makeOverlayPositioned(_compose.cardEl);
+        // manter posição e largura atual respeitando box model
+        const cs = window.getComputedStyle(srcCard);
+        const num = (v) => parseFloat(v || '0') || 0;
+        const hPadding = num(cs.paddingLeft) + num(cs.paddingRight);
+        const hBorder = num(cs.borderLeftWidth) + num(cs.borderRightWidth);
+        let setWidth = totalW;
+        if (cs.boxSizing === 'content-box') setWidth = Math.max(0, totalW - hPadding - hBorder);
+        _compose.cardEl.style.boxSizing = cs.boxSizing;
+        _compose.cardEl.style.maxWidth = 'none';
+        _compose.cardEl.style.left = posLeft || '16px';
+        _compose.cardEl.style.top = posTop || '16px';
+        _compose.cardEl.style.width = setWidth + 'px';
+        _compose.cardEl.style.minWidth = setWidth + 'px';
+        _compose.cardEl.style.maxWidth = setWidth + 'px';
+        // reaplica escala atual
+        const s = (_compose.scale / 100);
+        _compose.cardEl.style.transformOrigin = 'top left';
+        _compose.cardEl.style.transform = `scale(${s})`;
+        return;
+    }
+    const clone = cloneShareCard(srcCard);
+    _compose.cardEl = clone;
+    _compose.overlay.style.position = 'absolute';
+    _compose.overlay.style.inset = '0';
+    _compose.overlay.appendChild(clone);
+    // posição inicial: 16px 16px
+    clone.style.left = '16px';
+    clone.style.top = '16px';
+    // mede largura original do card de origem (mais fiel) e fixa como base (preserva proporção)
+    const origRect = srcCard.getBoundingClientRect();
+    const cs = window.getComputedStyle(srcCard);
+    // usa a largura congelada se já existir; caso contrário, mede e congela agora
+    const measured = origRect.width; // largura total (border-box visual, com decimais)
+    const ow = (_compose.frozenBaseWidth != null) ? _compose.frozenBaseWidth : measured;
+    if (_compose.frozenBaseWidth == null) _compose.frozenBaseWidth = ow;
+    _compose.baseWidth = ow;
+    // coleta métricas para respeitar box-sizing
+    const num = (v) => parseFloat(v || '0') || 0;
+    const metrics = {
+        boxSizing: cs.boxSizing,
+        hPadding: num(cs.paddingLeft) + num(cs.paddingRight),
+        hBorder: num(cs.borderLeftWidth) + num(cs.borderRightWidth)
+    };
+    _compose.metrics = metrics;
+    // define width base respeitando o box model (não escalamos a largura)
+    let contentWidth = ow;
+    if (metrics.boxSizing === 'content-box') contentWidth = Math.max(0, ow - metrics.hPadding - metrics.hBorder);
+    clone.style.boxSizing = cs.boxSizing;
+    clone.style.maxWidth = 'none';
+    clone.style.width = contentWidth + 'px';
+    clone.style.minWidth = contentWidth + 'px';
+    clone.style.maxWidth = contentWidth + 'px';
+    // aplica escala do slider via transform se existir
+    if (_compose.scaleInput) {
+        const perc = Number(_compose.scaleInput.value) || 100;
+        _compose.scale = perc;
+        const s = perc / 100;
+        clone.style.transformOrigin = 'top left';
+        clone.style.transform = `scale(${s})`;
+        if (_compose.scaleLabel) _compose.scaleLabel.textContent = `${perc}%`;
+    }
+}
+
+function cloneShareCard(srcCard) {
+    const clone = srcCard.cloneNode(true);
+    // remove id do próprio nó e de todos os descendentes para evitar duplicatas no DOM
+    const stripIds = (el) => {
+        if (el.nodeType !== 1) return;
+        if (el.id) el.removeAttribute('id');
+        const children = el.children || [];
+        for (let i = 0; i < children.length; i++) stripIds(children[i]);
+    };
+    stripIds(clone);
+    // remove a seção de meta do card no clone (print não deve exibir)
+    try {
+        const metas = clone.querySelectorAll('.card-meta');
+        metas.forEach(n => n.remove());
+    } catch(_) {}
+    clone.style.display = 'block';
+    clone.style.position = 'absolute';
+    clone.style.pointerEvents = 'none'; // evita capturar cliques internos, drag é pelo overlay
+    // garantir mesmas cores inline aplicadas no original
+    clone.style.background = srcCard.style.background;
+    clone.style.color = srcCard.style.color;
+    // Copiar propriedades tipográficas para evitar variações por contexto
+    try {
+        const cs = window.getComputedStyle(srcCard);
+        const props = [
+            'fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing',
+            'fontStretch','fontVariant','fontKerning','textTransform','textRendering'
+        ];
+        for (const p of props) clone.style[p] = cs[p];
+    } catch(_) {}
+    return clone;
+}
+
+function makeOverlayPositioned(el) {
+    if (!el) return;
+    el.style.position = 'absolute';
+    el.style.pointerEvents = 'none';
+}
+
+// Exposta para ser chamada após recalcular o card
+function updateOverlayCardFromShareCard() {
+    if (!_compose) return;
+    const srcCard = document.getElementById('shareCard');
+    if (!srcCard || srcCard.style.display === 'none') return;
+    ensureOverlayCard();
+    if (_compose.cardEl) {
+        // Atualiza conteúdo textual do clone para refletir mudanças
+        const fresh = srcCard.cloneNode(true);
+        // strip IDs do clone inteiro
+        (function stripIds(el){ if (el.nodeType!==1) return; if (el.id) el.removeAttribute('id'); const kids=el.children||[]; for (let i=0;i<kids.length;i++) stripIds(kids[i]); })(fresh);
+        // remove a seção de meta do card no clone (print não deve exibir)
+        try {
+            const metas2 = fresh.querySelectorAll('.card-meta');
+            metas2.forEach(n => n.remove());
+        } catch(_) {}
+        fresh.style.display = 'block';
+        fresh.style.position = 'absolute';
+        fresh.style.left = _compose.cardEl.style.left || '16px';
+        fresh.style.top = _compose.cardEl.style.top || '16px';
+        fresh.style.background = srcCard.style.background;
+        fresh.style.color = srcCard.style.color;
+        fresh.style.pointerEvents = 'none';
+        // Copiar propriedades tipográficas para evitar variações por contexto
+        try {
+            const cs2 = window.getComputedStyle(srcCard);
+            const props2 = [
+                'fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing',
+                'fontStretch','fontVariant','fontKerning','textTransform','textRendering'
+            ];
+            for (const p of props2) fresh.style[p] = cs2[p];
+        } catch(_) {}
+        // Atualiza apenas metrics; mantém baseWidth congelada
+        const cs = window.getComputedStyle(srcCard);
+        // não alterar baseWidth; manter congelada
+        _compose.baseWidth = (_compose.frozenBaseWidth != null) ? _compose.frozenBaseWidth : _compose.baseWidth;
+        const num = (v) => parseFloat(v || '0') || 0;
+        _compose.metrics = {
+            boxSizing: cs.boxSizing,
+            hPadding: num(cs.paddingLeft) + num(cs.paddingRight),
+            hBorder: num(cs.borderLeftWidth) + num(cs.borderRightWidth)
+        };
+        // manter largura base e aplicar escala via transform
+        fresh.style.boxSizing = cs.boxSizing;
+        fresh.style.maxWidth = 'none';
+        // fixa a largura base (contentWidth com box model)
+        const hPadding = num(cs.paddingLeft) + num(cs.paddingRight);
+        const hBorder = num(cs.borderLeftWidth) + num(cs.borderRightWidth);
+        let baseContent = _compose.baseWidth || fresh.getBoundingClientRect().width;
+        if (cs.boxSizing === 'content-box') baseContent = Math.max(0, (_compose.baseWidth || 0) - hPadding - hBorder);
+        fresh.style.width = baseContent + 'px';
+        fresh.style.minWidth = baseContent + 'px';
+        fresh.style.maxWidth = baseContent + 'px';
+        // aplica escala atual
+        const s2 = (_compose.scale / 100);
+        fresh.style.transformOrigin = 'top left';
+        fresh.style.transform = `scale(${s2})`;
+        _compose.cardEl.replaceWith(fresh);
+        _compose.cardEl = fresh;
+    }
+}
+
+// Aplica a largura no overlay card a partir da base congelada e métricas atuais
+function applyOverlayWidthFromBase() {
+    if (!_compose || !_compose.cardEl || !_compose.baseWidth) return;
+    const cs = window.getComputedStyle(document.getElementById('shareCard'));
+    // garante largura base fixa
+    const num = (v) => parseFloat(v || '0') || 0;
+    const hPadding = num(cs.paddingLeft) + num(cs.paddingRight);
+    const hBorder = num(cs.borderLeftWidth) + num(cs.borderRightWidth);
+    let baseContent = _compose.baseWidth;
+    if (cs.boxSizing === 'content-box') baseContent = Math.max(0, _compose.baseWidth - hPadding - hBorder);
+    _compose.cardEl.style.boxSizing = cs.boxSizing;
+    _compose.cardEl.style.maxWidth = 'none';
+    _compose.cardEl.style.width = baseContent + 'px';
+    _compose.cardEl.style.minWidth = baseContent + 'px';
+    _compose.cardEl.style.maxWidth = baseContent + 'px';
+    // aplica escala
+    const s = (_compose.scale / 100);
+    _compose.cardEl.style.transformOrigin = 'top left';
+    _compose.cardEl.style.transform = `scale(${s})`;
+}
+
+function recalibrateOverlayWidthFromSource() {
+    if (!_compose || !_compose.cardEl) return;
+    const srcCard = document.getElementById('shareCard');
+    if (!srcCard || srcCard.style.display === 'none') return;
+    requestAnimationFrame(() => {
+        const rect = srcCard.getBoundingClientRect();
+        const cs = window.getComputedStyle(srcCard);
+        // congela nova largura base conforme pedido
+        _compose.frozenBaseWidth = rect.width;
+        _compose.baseWidth = rect.width;
+        // aplica novamente largura e escala
+        const num = (v) => parseFloat(v || '0') || 0;
+        const hPadding = num(cs.paddingLeft) + num(cs.paddingRight);
+        const hBorder = num(cs.borderLeftWidth) + num(cs.borderRightWidth);
+        let baseContent = _compose.baseWidth;
+        if (cs.boxSizing === 'content-box') baseContent = Math.max(0, _compose.baseWidth - hPadding - hBorder);
+        _compose.cardEl.style.boxSizing = cs.boxSizing;
+        _compose.cardEl.style.maxWidth = 'none';
+        _compose.cardEl.style.width = baseContent + 'px';
+        _compose.cardEl.style.minWidth = baseContent + 'px';
+        _compose.cardEl.style.maxWidth = baseContent + 'px';
+        const s = (_compose.scale / 100);
+        _compose.cardEl.style.transformOrigin = 'top left';
+        _compose.cardEl.style.transform = `scale(${s})`;
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const metasTop = window.temposRefOrig;
