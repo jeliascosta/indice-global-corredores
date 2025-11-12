@@ -15,7 +15,7 @@ function preencherTabelaParaSexo(tbodyId, sexoReferencia) {
         { label: '15', km: 15 },
         { label: 'Meia', km: 21.0975 }
     ];
-
+    
     for (let idade = 25; idade <= 60; idade += 5) {
         const tr = document.createElement('tr');
         let rowHtml = `<td>${idade} anos</td>`;
@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '70-79': '🏃‍♂️👏 QUE TREINO TOP!! 👏🏃‍♂️',
                 '80-89': '🔥🏃‍♂️👉 SÉRIO ISSO?!! 👈🏃‍♂️🔥',
                 '90-99': '😱🏅⚡ DANGER ZONE ⚡🏅😱',
+                // '90-99': '⚡ DANGER ZONE ⚡',
                 '100': '🏆🥇⚓ ÉPICO ⚓🥇🏆'
             };
             const frasesMulher = {
@@ -239,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('cardPace').textContent = `${displayPace} /km`;
             const zonePhraseEl = document.getElementById('zonePhrase');
             zonePhraseEl.textContent = phrase;
+
             // Aplicar cor rgb(254, 240, 165) quando a nota estiver entre 90 e 99
             if (inteiro >= 90 && inteiro < 100) {
                 zonePhraseEl.style.color = 'rgba(242, 244, 164, 1)';
@@ -257,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 if (typeof updateOverlayCardFromShareCard === 'function') updateOverlayCardFromShareCard();
                 if (typeof recalibrateOverlayWidthFromSource === 'function') recalibrateOverlayWidthFromSource();
-            } catch (_) {}
+            } catch (_) { }
         } catch (error) {
             const shareCard = document.getElementById('shareCard');
             if (shareCard) {
@@ -802,7 +804,7 @@ function cloneShareCard(srcCard) {
     try {
         const metas = clone.querySelectorAll('.card-meta');
         metas.forEach(n => n.remove());
-    } catch(_) {}
+    } catch (_) { }
     clone.style.display = 'block';
     clone.style.position = 'absolute';
     clone.style.pointerEvents = 'none'; // evita capturar cliques internos, drag é pelo overlay
@@ -813,11 +815,11 @@ function cloneShareCard(srcCard) {
     try {
         const cs = window.getComputedStyle(srcCard);
         const props = [
-            'fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing',
-            'fontStretch','fontVariant','fontKerning','textTransform','textRendering'
+            'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing',
+            'fontStretch', 'fontVariant', 'fontKerning', 'textTransform', 'textRendering'
         ];
         for (const p of props) clone.style[p] = cs[p];
-    } catch(_) {}
+    } catch (_) { }
     // Ajuste específico do clone: espaçamento da frase da zona para print/export
     try {
         const zp = clone.querySelector('.zone-phrase');
@@ -827,8 +829,89 @@ function cloneShareCard(srcCard) {
             zp.style.backdropFilter = 'none';
             zp.style.webkitBackdropFilter = 'none';
         }
-    } catch(_) {}
+    } catch (_) { }
+    // Distribui emojis somente no clone e não para nota 100
+    try { distributeZoneEmojisOnCard(clone); } catch(_) {}
     return clone;
+}
+
+// Redistribui emojis no card clonado (não afeta o card original) e ignora quando a nota é 100
+function distributeZoneEmojisOnCard(cardEl) {
+    if (!cardEl) return;
+    try {
+        const scoreEl = cardEl.querySelector('.score-big');
+        const scoreTxt = (scoreEl && scoreEl.textContent || '').trim();
+        if (scoreTxt === '100') return; // não distribuir para 100
+        const zoneEl = cardEl.querySelector('.zone-phrase');
+        if (!zoneEl) return;
+        const leftCorner = cardEl.querySelector('.card-corner-left');
+        const rightCorner = cardEl.querySelector('.card-corner-right');
+        const text = (zoneEl.textContent || '').trim();
+        // Segmentar por grafema (mantém ZWJ); usa Intl.Segmenter se disponível
+        const segmentGraphemes = (s) => {
+            try {
+                if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+                    const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+                    return Array.from(seg.segment(s), it => it.segment);
+                }
+            } catch (_) { }
+            const arr = Array.from(s);
+            const out = [];
+            for (let i = 0; i < arr.length; i++) {
+                let g = arr[i];
+                while (i + 1 < arr.length && arr[i + 1] === '\uFE0F') { g += arr[++i]; }
+                while (i + 2 < arr.length && arr[i + 1] === '\u200D') {
+                    g += arr[++i];
+                    g += arr[++i];
+                    while (i + 1 < arr.length && arr[i + 1] === '\uFE0F') { g += arr[++i]; }
+                }
+                out.push(g);
+            }
+            return out;
+        };
+        const units = segmentGraphemes(text);
+        const isEmojiUnit = (u) => {
+            if (!u) return false;
+            for (const ch of Array.from(u)) {
+                const cp = ch.codePointAt(0);
+                if (cp >= 0x1F000 && cp <= 0x1FAFF) return true;
+                if ((cp >= 0x2190 && cp <= 0x21FF) || (cp >= 0x2300 && cp <= 0x23FF)) return true;
+                if ((cp >= 0x2460 && cp <= 0x24FF) || (cp >= 0x2600 && cp <= 0x27BF)) return true;
+                if ((cp >= 0x2900 && cp <= 0x297F) || (cp >= 0x2B00 && cp <= 0x2BFF)) return true;
+            }
+            return false;
+        };
+        // leading
+        let s = 0; const leading = [];
+        while (s < units.length) {
+            const u = units[s];
+            if (u === ' ') { s++; continue; }
+            if (isEmojiUnit(u)) { leading.push(u); s++; continue; }
+            break;
+        }
+        // trailing
+        let e = units.length - 1; const trailing = [];
+        while (e >= 0) {
+            const u = units[e];
+            if (u === ' ') { e--; continue; }
+            if (isEmojiUnit(u)) { trailing.push(u); e--; continue; }
+            break;
+        }
+        const core = units.slice(s, e + 1).join('');
+        // manter o mais próximo do texto dentro; demais vão pros cantos
+        const keepLeft = leading.length ? leading[leading.length - 1] : '';
+        const keepRight = trailing.length ? trailing[trailing.length - 1] : '';
+        const zoneText = [keepLeft, core, keepRight].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+        zoneEl.textContent = zoneText;
+        if (leftCorner) {
+            const extraLeft = leading.slice(0, Math.max(0, leading.length - 1)).reverse();
+            leftCorner.innerHTML = extraLeft.length ? extraLeft.map(x => `<div>${x}</div>`).join('') : '';
+        }
+        if (rightCorner) {
+            const extraRight = trailing.slice(0, Math.max(0, trailing.length - 1)).reverse();
+            rightCorner.innerHTML = extraRight.length ? extraRight.map(x => `<div>${x}</div>`).join('') : '';
+        }
+    } catch (_) { }
 }
 
 function makeOverlayPositioned(el) {
@@ -847,12 +930,12 @@ function updateOverlayCardFromShareCard() {
         // Atualiza conteúdo textual do clone para refletir mudanças
         const fresh = srcCard.cloneNode(true);
         // strip IDs do clone inteiro
-        (function stripIds(el){ if (el.nodeType!==1) return; if (el.id) el.removeAttribute('id'); const kids=el.children||[]; for (let i=0;i<kids.length;i++) stripIds(kids[i]); })(fresh);
+        (function stripIds(el) { if (el.nodeType !== 1) return; if (el.id) el.removeAttribute('id'); const kids = el.children || []; for (let i = 0; i < kids.length; i++) stripIds(kids[i]); })(fresh);
         // remove a seção de meta do card no clone (print não deve exibir)
         try {
             const metas2 = fresh.querySelectorAll('.card-meta');
             metas2.forEach(n => n.remove());
-        } catch(_) {}
+        } catch (_) { }
         fresh.style.display = 'block';
         fresh.style.position = 'absolute';
         fresh.style.left = _compose.cardEl.style.left || '16px';
@@ -864,14 +947,13 @@ function updateOverlayCardFromShareCard() {
         try {
             const cs2 = window.getComputedStyle(srcCard);
             const props2 = [
-                'fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing',
-                'fontStretch','fontVariant','fontKerning','textTransform','textRendering'
+                'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing',
+                'fontStretch', 'fontVariant', 'fontKerning', 'textTransform', 'textRendering'
             ];
             for (const p of props2) fresh.style[p] = cs2[p];
-        } catch(_) {}
+        } catch (_) { }
         // Atualiza apenas metrics; mantém baseWidth congelada
         const cs = window.getComputedStyle(srcCard);
-        // não alterar baseWidth; manter congelada
         _compose.baseWidth = (_compose.frozenBaseWidth != null) ? _compose.frozenBaseWidth : _compose.baseWidth;
         const num = (v) => parseFloat(v || '0') || 0;
         _compose.metrics = {
@@ -882,7 +964,6 @@ function updateOverlayCardFromShareCard() {
         // manter largura base e aplicar escala via transform
         fresh.style.boxSizing = cs.boxSizing;
         fresh.style.maxWidth = 'none';
-        // fixa a largura base (contentWidth com box model)
         const hPadding = num(cs.paddingLeft) + num(cs.paddingRight);
         const hBorder = num(cs.borderLeftWidth) + num(cs.borderRightWidth);
         let baseContent = _compose.baseWidth || fresh.getBoundingClientRect().width;
@@ -894,22 +975,22 @@ function updateOverlayCardFromShareCard() {
         const s2 = (_compose.scale / 100);
         fresh.style.transformOrigin = 'top left';
         fresh.style.transform = `scale(${s2})`;
-        // Ajuste específico do clone atualizado: garantir margin-top da zone-phrase em 12px
+        // Ajuste específico do clone atualizado: garantir margin-top da zone-phrase em 12px e sem blur
         try {
             const zp2 = fresh.querySelector('.zone-phrase');
             if (zp2) {
                 zp2.style.marginTop = '12px';
-                // remover blur no clone (print/export)
                 zp2.style.backdropFilter = 'none';
                 zp2.style.webkitBackdropFilter = 'none';
             }
-        } catch(_) {}
+        } catch (_) { }
+        // Distribui emojis somente no clone e não para nota 100
+        try { distributeZoneEmojisOnCard(fresh); } catch (_) { }
         _compose.cardEl.replaceWith(fresh);
         _compose.cardEl = fresh;
     }
 }
 
-// Aplica a largura no overlay card a partir da base congelada e métricas atuais
 function applyOverlayWidthFromBase() {
     if (!_compose || !_compose.cardEl || !_compose.baseWidth) return;
     const cs = window.getComputedStyle(document.getElementById('shareCard'));

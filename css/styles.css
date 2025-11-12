@@ -9,6 +9,18 @@ body {
     color: #333;
 }
 
+/* etiquetas nos cantos inferiores do card (não interferem na altura) */
+.share-card .card-corner{
+    position: absolute;
+    bottom: 43px; /* acima da faixa zone-phrase */
+    font-size: 1.2rem;
+    font-weight: 700;
+    opacity: 0.9;
+    pointer-events: none; /* não captura cliques/gestos */
+}
+.share-card .card-corner-left{ left: 10px; }
+.share-card .card-corner-right{ right: 10px; }
+
 .container {
     max-width: 600px;
     margin: 20px auto;
@@ -256,6 +268,7 @@ tr:hover {
     gap: 6px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     text-align: center;
+    position: relative; /* para posicionar cantos absolutos */
 }
 
 /* topo pequeno */
