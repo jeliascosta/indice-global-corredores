@@ -99,12 +99,12 @@
             <h3>Combine com o print do app de corrida:</h3>
             <div class="compose-controls">
                 <input type="file" id="composeInput" accept="image/*" class="compose-upload">
-                <label for="composeScale" style="white-space: nowrap; display:flex; align-items:center; gap:6px; width:100%;">
+                <label id="composeScaleRow" for="composeScale" style="white-space: nowrap; display:none; align-items:center; gap:6px; width:100%;">
                     Tamanho do card:
                     <input type="range" id="composeScale" min="35" max="160" value="100" step="1" style="width:100%;">
                     <span id="composeScaleLabel">100%</span>
                 </label>
-                <div style="display:flex; gap:8px; width:100%; align-items:stretch;">
+                <div id="composeActions" style="display:none; gap:8px; width:100%; align-items:stretch;">
                     <button type="button" id="composeExport" class="compose-export" style="flex:1 1 0;" disabled>💾 Baixar Print</button>
                     <button type="button" id="composeShare" class="compose-export" style="flex:1 1 0;" disabled>📤 Compartilhar Print</button>
                 </div>
@@ -246,6 +246,10 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <script>
+        const CARD_EXPORT_SCALE = 3;
+        const CARD_EXPORT_MIME = 'image/png';
+        const CARD_EXPORT_QUALITY = 0.92; // ignorado por alguns navegadores para PNG, mantido por consistência
+
         document.getElementById('copyCardBtn').addEventListener('click', async () => {
             const card = document.getElementById('shareCard');
             if (!card || card.style.display === 'none') {
@@ -257,20 +261,51 @@
                 // Captura o div como imagem
                 const canvas = await html2canvas(card, {
                     backgroundColor: null,
-                    scale: 3, // imagem mais nítida
+                    scale: CARD_EXPORT_SCALE,
                     useCORS: true
                 });
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
-                // Copia para a área de transferência
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
+                // Monta nome do arquivo
+                const distEl = document.getElementById('scoreDistancia');
+                let distStr = (distEl && distEl.textContent) ? distEl.textContent.trim() : '';
+                distStr = distStr.replace(/\s+/g, '');
+                const notaEl = document.getElementById('scoreBig');
+                let notaStr = (notaEl && notaEl.textContent) ? notaEl.textContent.trim() : '';
+                notaStr = notaStr.replace(/\s+/g, '');
+                const now = new Date();
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yy = String(now.getFullYear()).slice(-2);
+                const filename = `igdcc-${notaStr}-${distStr}_${dd}-${mm}-${yy}.png`;
 
-                alert('✅ Card copiado para a área de transferência!');
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, CARD_EXPORT_MIME, CARD_EXPORT_QUALITY));
+                if (!blob) throw new Error('Falha ao gerar imagem');
+                const file = new File([blob], filename, { type: CARD_EXPORT_MIME });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'IGDCC',
+                        text: 'Meu card do IGDCC'
+                    });
+                    return;
+                }
+                if (navigator.share) {
+                    const dataUrl = canvas.toDataURL(CARD_EXPORT_MIME, CARD_EXPORT_QUALITY);
+                    await navigator.share({
+                        title: 'IGDCC',
+                        text: 'Meu card do IGDCC',
+                        url: dataUrl
+                    });
+                    return;
+                }
+
+                // Fallback: abrir imagem em nova aba para o usuário compartilhar manualmente
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
             } catch (err) {
-                console.error('Erro ao copiar card:', err);
-                alert('❌ Falha ao copiar o card. Verifique as permissões.');
+                console.error('Falha ao compartilhar/capturar card:', err);
+                alert('Compartilhamento não suportado neste dispositivo/navegador.');
             }
         });
     </script>

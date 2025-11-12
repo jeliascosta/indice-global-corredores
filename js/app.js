@@ -103,21 +103,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const frasesHomem = {
-                '50-59': '😁 BORA VIBRAR!!! 😁',
-                '60-69': '💪😁 ZONA 2, TÁ PAGO!! 😁💪',
+                '50-59': '😁 VIBRANDO!!! 😁',
+                '60-69': '🎯😁 ZONA 2, TÁ PAGO!! 😁🎯',
                 '70-79': '🏃‍♂️👏 QUE TREINO TOP!! 👏🏃‍♂️',
                 '80-89': '🔥🏃‍♂️👉 SÉRIO ISSO?!! 👈🏃‍♂️🔥',
                 '90-99': '😱🏅⚡ DANGER ZONE ⚡🏅😱',
-                '100': '🏆🥇⚓ ÉPICO ⚓🥇🏆'
+                '100': '🏆🥇⚓ É P I C O ⚓🥇🏆'
             };
             const frasesMulher = {
                 ...frasesHomem,
                 '70-79': '🏃‍♀️👏 QUE TREINO TOP!! 👏🏃‍♀️',
                 '80-89': '🔥🏃‍♀️👉 SÉRIO ISSO?!! 👈🏃‍♀️🔥',
-                '100': '🏆🥇⚓ ÉPICA ⚓🥇🏆'
             };
             const frasesCardPrint = {
-                '60-69': '💪 ZONA 2, PAGO!! 💪',
+                '60-69': '🎯 ZONA 2, PAGO!! 🎯',
                 '80-89': '🔥 SÉRIO ISSO?!! 🔥',
                 '90-99': '⚡ DANGER ZONE ⚡',
             }
@@ -210,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const zone = zonaLabel(inteiro);
-            const phrase = frases[zone] || (inteiro >= 90 ? frases['90-100'] : 'Vibrando!');
+            const phrase = frases[zone] || (inteiro >= 90 ? frases['90-100'] : '💪 BORA VIBRAR! 💪');
             const printPhrase = (frasesPrint && frasesPrint[zone]) ? frasesPrint[zone] : phrase;
 
             // calcular tempo / pace para exibir no card
@@ -253,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 shareCardEl.dataset.zoneKey = zone;
                 shareCardEl.dataset.sexo = sexo;
                 shareCardEl.dataset.phrasePrint = printPhrase;
-            } catch(_) {}
+            } catch (_) { }
 
             document.getElementById('cardDate').textContent = hoje;
             document.getElementById('scoreBig').textContent = inteiro;
@@ -282,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 const compositor = document.getElementById('compositor');
                 if (compositor) compositor.style.display = 'block';
-            } catch (_) {}
+            } catch (_) { }
             // Sincroniza o card no compositor com o novo conteúdo e largura
             try {
                 if (typeof updateOverlayCardFromShareCard === 'function') updateOverlayCardFromShareCard();
@@ -548,9 +547,14 @@ function setupCompositor() {
     const scaleInput = document.getElementById('composeScale');
     const scaleLabel = document.getElementById('composeScaleLabel');
 
+    // parâmetros reutilizáveis para exportar/compartilhar o PRINT (compositor)
+    const EXPORT_SCALE = 3;
+    const EXPORT_MIME = 'image/png';
+    const EXPORT_QUALITY = 1;
+
     if (!input || !img || !overlay || !exportBtn || !wrap) return;
     // manter overlay invisível até que a imagem esteja carregada
-    try { overlay.style.visibility = 'hidden'; } catch (_) {}
+    try { overlay.style.visibility = 'hidden'; } catch (_) { }
     if (shareBtn) shareBtn.disabled = true;
 
     // cria contêiner interno sem padding/bordas para exportação
@@ -582,7 +586,14 @@ function setupCompositor() {
                 exportBtn.disabled = false;
                 if (shareBtn) shareBtn.disabled = false;
                 // só agora o overlay pode ficar visível
-                try { overlay.style.visibility = 'visible'; } catch (_) {}
+                try { overlay.style.visibility = 'visible'; } catch (_) { }
+                // exibe controles (escala e botões) somente após a imagem carregar
+                try {
+                    const scaleRow = document.getElementById('composeScaleRow');
+                    const actions = document.getElementById('composeActions');
+                    if (scaleRow) scaleRow.style.display = 'flex';
+                    if (actions) actions.style.display = 'flex';
+                } catch (_) { }
                 if (!_compose.cardEl) {
                     ensureOverlayCard();
                 } else {
@@ -723,8 +734,8 @@ function setupCompositor() {
         if (!_compose || !_compose.img.src) return;
         try {
             const target = _compose.exportRoot || wrap;
-            const canvas = await html2canvas(target, { backgroundColor: null, useCORS: true, scale: 4 });
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            const canvas = await html2canvas(target, { backgroundColor: null, useCORS: true, scale: EXPORT_SCALE });
+            const dataUrl = canvas.toDataURL(EXPORT_MIME, EXPORT_QUALITY);
             const link = document.createElement('a');
             link.href = dataUrl;
             // Monta nome do arquivo usando o texto de scoreDistancia (sem espaços)
@@ -738,7 +749,7 @@ function setupCompositor() {
             const dd = String(now.getDate()).padStart(2, '0');
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const yy = String(now.getFullYear()).slice(-2);
-            link.download = `igdcc-${notaStr}-${distStr}_${dd}-${mm}-${yy}.jpg`;
+            link.download = `igdcc-${notaStr}-${distStr}_${dd}-${mm}-${yy}.png`;
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -764,11 +775,11 @@ function setupCompositor() {
                 const dd = String(now.getDate()).padStart(2, '0');
                 const mm = String(now.getMonth() + 1).padStart(2, '0');
                 const yy = String(now.getFullYear()).slice(-2);
-                const filename = `igdcc-${notaStr}-${distStr}_${dd}-${mm}-${yy}.jpg`;
+                const filename = `igdcc-${notaStr}-${distStr}_${dd}-${mm}-${yy}.png`;
 
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, EXPORT_MIME, EXPORT_QUALITY));
                 if (!blob) throw new Error('Falha ao gerar imagem');
-                const file = new File([blob], filename, { type: 'image/jpeg' });
+                const file = new File([blob], filename, { type: EXPORT_MIME });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
@@ -780,7 +791,7 @@ function setupCompositor() {
                 }
                 if (navigator.share) {
                     // Fallback: compartilhar um data URL (alguns ambientes aceitam)
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                    const dataUrl = canvas.toDataURL(EXPORT_MIME, EXPORT_QUALITY);
                     await navigator.share({
                         title: 'IGDCC',
                         text: 'Meu print do IGDCC',
